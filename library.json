@@ -1,0 +1,26 @@
+{
+  "name": "arduinolib3",
+  "version": "1.0.0",
+  "description": "A header-only PlatformIO library that depends on arduinolib1",
+  "keywords": "arduino, utility",
+  "authors": [
+    {
+      "name": "Nayan"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/compilerNayan/arduinolib3.git"
+  },
+  "dependencies": {
+    "arduinolib1": "https://github.com/compilerNayan/arduinolib1.git"
+  },
+  "license": "MIT",
+  "homepage": "",
+  "frameworks": "arduino",
+  "platforms": "*",
+  "build": {
+    "extraScript": "arduinolib3_scripts/arduinolib3_pre_build.py"
+  }
+}
+

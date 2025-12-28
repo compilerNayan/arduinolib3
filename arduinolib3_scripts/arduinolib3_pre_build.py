@@ -19,6 +19,30 @@ import os
 from pathlib import Path
 
 
+def get_library_dir():
+    """
+    Find the arduinolib3_scripts directory by searching up the directory tree.
+    
+    Returns:
+        Path: Path to the arduinolib3_scripts directory
+        
+    Raises:
+        ImportError: If the directory cannot be found
+    """
+    cwd = Path(os.getcwd())
+    current = cwd
+    for _ in range(10):  # Search up to 10 levels
+        potential = current / "arduinolib3_scripts"
+        if potential.exists() and potential.is_dir():
+            print(f"✓ Found library path by searching up directory tree: {potential}")
+            return potential
+        parent = current.parent
+        if parent == current:  # Reached filesystem root
+            break
+        current = parent
+    raise ImportError("Could not find arduinolib3_scripts directory")
+
+
 def get_project_dir():
     """
     Get the project directory from PlatformIO environment or CMake environment.
@@ -42,8 +66,19 @@ def get_project_dir():
     return project_dir
 
 
+# Get library scripts directory and add it to Python path
+library_scripts_dir = get_library_dir()
+sys.path.insert(0, str(library_scripts_dir))
+
 # Get project directory
 project_dir = get_project_dir()
+
+# Get library root directory (parent of arduinolib3_scripts)
+library_dir = library_scripts_dir.parent
+
+# Import and execute scripts
+from arduinolib3_execute_scripts import execute_scripts
+execute_scripts(project_dir, library_dir)
 
 print("arduinolib3 pre-build script completed successfully")
 

@@ -111,14 +111,23 @@ def find_library_scripts(scripts_dir_name):
 def execute_scripts(project_dir, library_dir):
     """
     Execute the scripts to process client files.
-    Calls the arduinolib1 serializer script to process Serializable macro.
+    Calls the arduinolib1 serializer script (00_process_serializable_classes.py) directly
+    and then injects primary key methods.
     
     Args:
         project_dir: Path to the client project root (where platformio.ini is)
         library_dir: Path to the library directory
     """
+    # Set project_dir in globals so serializer scripts can access it
+    globals()['project_dir'] = project_dir
+    globals()['library_dir'] = library_dir
+    
     print(f"\nproject_dir: {project_dir}")
     print(f"library_dir: {library_dir}")
+    
+    # Get serializable macro name from environment or use default
+    serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "_Entity")
+    globals()['serializable_macro'] = serializable_macro
     
     # Find arduinolib1_scripts directory
     arduinolib1_scripts_dir = find_library_scripts("arduinolib1_scripts")
@@ -130,28 +139,130 @@ def execute_scripts(project_dir, library_dir):
     # Add arduinolib1_scripts to Python path
     sys.path.insert(0, str(arduinolib1_scripts_dir))
     
-    # Try to import and call arduinolib1_execute_scripts
+    # Try to import get_client_files from arduinolib1
     try:
-        # Import the execute_scripts function from arduinolib1
-        from arduinolib1_execute_scripts import execute_scripts as arduinolib1_execute_scripts
+        from arduinolib1_core.arduinolib1_get_client_files import get_client_files
+        HAS_GET_CLIENT_FILES = True
+    except ImportError:
+        print("Warning: Could not import get_client_files from arduinolib1")
+        HAS_GET_CLIENT_FILES = False
+    
+    # List client files if available
+    if HAS_GET_CLIENT_FILES:
+        if project_dir:
+            client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
+            print(f"\nFound {len(client_files)} files in client project:")
+            print("=" * 60)
+            for file in client_files:
+                print(file)
+            print("=" * 60)
         
-        # Get serializable macro name from environment or use default
-        serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "_Entity")
-        
-        print(f"\n{'=' * 60}")
-        print("🚀 Calling arduinolib1 serializer to process Serializable macro...")
-        print(f"{'=' * 60}\n")
-        
-        # Call the arduinolib1 execute_scripts function
-        arduinolib1_execute_scripts(project_dir, library_dir, serializable_macro=serializable_macro)
-        
-        print(f"\n✅ Successfully called arduinolib1 serializer")
-        
-    except ImportError as e:
-        print(f"Warning: Could not import arduinolib1_execute_scripts: {e}")
-        print("         Some features may be unavailable.")
+        if library_dir:
+            library_files = get_client_files(library_dir, skip_exclusions=True)
+            print(f"\nFound {len(library_files)} files in library:")
+            print("=" * 60)
+            for file in library_files:
+                print(file)
+            print("=" * 60)
+    
+    # Run the master serializer script (00_process_serializable_classes.py) from arduinolib1
+    # Find the serializer directory
+    try:
+        # Get the directory of arduinolib1_scripts
+        arduinolib1_scripts_path = Path(arduinolib1_scripts_dir)
+        # serializer is in arduinolib1_serializer/
+        serializer_dir = arduinolib1_scripts_path / 'arduinolib1_serializer'
     except Exception as e:
-        print(f"Error calling arduinolib1 serializer: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error finding serializer directory: {e}")
+        serializer_dir = None
+    
+    if serializer_dir and serializer_dir.exists():
+        serializer_script_path = serializer_dir / '00_process_serializable_classes.py'
+        if serializer_script_path.exists():
+            print(f"\n{'=' * 60}")
+            print("Running serializer master script: 00_process_serializable_classes.py")
+            print(f"{'=' * 60}\n")
+            
+            try:
+                # Set environment variables so serializer script can access project_dir and library_dir
+                if project_dir:
+                    os.environ['PROJECT_DIR'] = project_dir
+                    os.environ['CMAKE_PROJECT_DIR'] = project_dir
+                if library_dir:
+                    os.environ['LIBRARY_DIR'] = str(library_dir)
+                # Set serializable macro name
+                os.environ['SERIALIZABLE_MACRO'] = serializable_macro
+                
+                # Load and execute the serializer script
+                spec = importlib.util.spec_from_file_location("process_serializable_classes", str(serializer_script_path))
+                serializer_module = importlib.util.module_from_spec(spec)
+                
+                # Add serializer directory to path for imports
+                sys.path.insert(0, str(serializer_dir))
+                
+                # Set globals in the module's namespace before execution
+                # This ensures the serializer script can access project_dir and library_dir
+                serializer_module.__dict__['project_dir'] = project_dir
+                serializer_module.__dict__['library_dir'] = library_dir
+                serializer_module.__dict__['serializable_macro'] = serializable_macro
+                
+                # Execute the module (this will run the top-level code)
+                spec.loader.exec_module(serializer_module)
+                
+                # Call the main function if it exists
+                if hasattr(serializer_module, 'main'):
+                    serializer_module.main()
+                elif hasattr(serializer_module, 'process_all_serializable_classes'):
+                    serializer_module.process_all_serializable_classes(dry_run=False)
+                
+                print(f"\n✅ Successfully executed arduinolib1 serializer")
+                
+                # After serializer scripts complete, inject primary key methods for all files with _Id fields
+                print(f"\n{'=' * 60}")
+                print("🚀 Injecting primary key methods for classes with _Id fields...")
+                print(f"{'=' * 60}\n")
+                
+                try:
+                    # Add arduinolib3_scripts to path
+                    current_file = Path(__file__).resolve()
+                    arduinolib3_scripts_dir = current_file.parent
+                    sys.path.insert(0, str(arduinolib3_scripts_dir))
+                    
+                    from arduinolib3_core.inject_primary_key_methods import process_file
+                    
+                    # Get all client files to process
+                    if HAS_GET_CLIENT_FILES and project_dir:
+                        client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
+                        
+                        processed_count = 0
+                        for file_path in client_files:
+                            try:
+                                if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
+                                    processed_count += 1
+                            except Exception as e:
+                                print(f"Warning: Error processing {file_path}: {e}")
+                        
+                        if processed_count > 0:
+                            print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
+                        else:
+                            print("\nℹ️  No files with _Id fields found for primary key injection")
+                    else:
+                        print("Warning: Could not get client files for primary key injection")
+                        
+                except ImportError as e:
+                    print(f"Warning: Could not import inject_primary_key_methods: {e}")
+                except Exception as e:
+                    print(f"Error injecting primary key methods: {e}")
+                    import traceback
+                    traceback.print_exc()
+                
+            except Exception as e:
+                print(f"Error running serializer script: {e}")
+                import traceback
+                traceback.print_exc()
+                print("\n⚠️  Skipping primary key injection due to serializer script error")
+        else:
+            print(f"Warning: Serializer script not found at {serializer_script_path}")
+    else:
+        print(f"Warning: Serializer directory not found at {serializer_dir}")
 

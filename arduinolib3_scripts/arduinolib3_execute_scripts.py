@@ -31,7 +31,21 @@ def find_library_scripts(scripts_dir_name):
     search_paths = []
     
     # Add current working directory
-    search_paths.append(Path(os.getcwd()))
+    cwd = Path(os.getcwd())
+    search_paths.append(cwd)
+    
+    # Check build/_deps from current working directory (in case we're in a build directory)
+    cwd_build_deps = cwd / "_deps" / lib_src_name / scripts_dir_name
+    if cwd_build_deps.exists() and cwd_build_deps.is_dir():
+        print(f"✓ Found {scripts_dir_name} (CMake from CWD build): {cwd_build_deps}")
+        return cwd_build_deps
+    
+    # Also check if CWD is a build directory, look for _deps
+    if cwd.name == "build" or "_deps" in str(cwd):
+        deps_dir = cwd / "_deps" / lib_src_name / scripts_dir_name
+        if deps_dir.exists() and deps_dir.is_dir():
+            print(f"✓ Found {scripts_dir_name} (CMake from CWD _deps): {deps_dir}")
+            return deps_dir
     
     # Add project directory if available
     project_dir = os.environ.get("CMAKE_PROJECT_DIR") or os.environ.get("PROJECT_DIR")

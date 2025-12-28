@@ -70,6 +70,9 @@ def get_project_dir():
 library_scripts_dir = get_library_dir()
 sys.path.insert(0, str(library_scripts_dir))
 
+# Set serializable macro name to _Entity
+os.environ['SERIALIZABLE_MACRO'] = '_Entity'
+
 # Get project directory
 project_dir = get_project_dir()
 

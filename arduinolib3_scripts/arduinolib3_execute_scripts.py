@@ -136,7 +136,7 @@ def execute_scripts(project_dir, library_dir):
         from arduinolib1_execute_scripts import execute_scripts as arduinolib1_execute_scripts
         
         # Get serializable macro name from environment or use default
-        serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "Serializable")
+        serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "_Entity")
         
         print(f"\n{'=' * 60}")
         print("🚀 Calling arduinolib1 serializer to process Serializable macro...")

@@ -1,8 +1,26 @@
 cmake_minimum_required(VERSION 3.14)
 project(arduinolib3 VERSION 1.0.0 LANGUAGES CXX)
 
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Fetch dependencies FIRST, before pre-build script
+# This ensures dependencies are available when the pre-build script runs
+include(FetchContent)
+
+# Fetch arduinolib1 dependency
+FetchContent_Declare(
+    arduinolib1
+    GIT_REPOSITORY https://github.com/compilerNayan/arduinolib1.git
+    GIT_TAG        main  # Use the main branch
+)
+
+FetchContent_MakeAvailable(arduinolib1)
+
 # Run pre-build script during configuration (runs even if client creates own library)
 # This will run whenever this CMakeLists.txt is processed
+# Note: All dependencies are now available since FetchContent_MakeAvailable was called above
 find_program(PYTHON_EXECUTABLE python3 python)
 if(PYTHON_EXECUTABLE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/arduinolib3_scripts/arduinolib3_pre_build.py")
     # Get the client project directory (CMAKE_SOURCE_DIR is the top-level project source directory)
@@ -32,21 +50,6 @@ if(PYTHON_EXECUTABLE AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/arduinolib3_scripts
         message(STATUS "arduinolib3 pre-build script exited with code ${PRE_BUILD_RESULT} (this is expected in non-PlatformIO CMake builds)")
     endif()
 endif()
-
-# Set C++ standard
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Fetch dependencies
-include(FetchContent)
-
-# Fetch arduinolib1 dependency
-FetchContent_Declare(
-    arduinolib1
-    GIT_REPOSITORY https://github.com/compilerNayan/arduinolib1.git
-    GIT_TAG        main  # Use the main branch
-)
-FetchContent_MakeAvailable(arduinolib1)
 
 # Create header-only library (INTERFACE library)
 add_library(arduinolib3 INTERFACE)

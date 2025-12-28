@@ -179,7 +179,48 @@ def execute_scripts(project_dir, library_dir):
                 print(file)
             print("=" * 60)
     
-    # Run the master serializer script (00_process_serializable_classes.py) from arduinolib1
+    # FIRST: Inject primary key methods BEFORE serializer comments out the _Entity macro
+    # This ensures we can find the _Entity macro before it gets commented
+    print(f"\n{'=' * 60}")
+    print("🚀 Injecting primary key methods for classes with _Id fields (before serializer)...")
+    print(f"{'=' * 60}\n")
+    
+    try:
+        # Add arduinolib3_scripts to path
+        current_file = Path(__file__).resolve()
+        arduinolib3_scripts_dir = current_file.parent
+        sys.path.insert(0, str(arduinolib3_scripts_dir))
+        
+        from arduinolib3_core.inject_primary_key_methods import process_file
+        
+        # Get all client files to process
+        if HAS_GET_CLIENT_FILES and project_dir:
+            client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
+            
+            processed_count = 0
+            for file_path in client_files:
+                try:
+                    if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
+                        processed_count += 1
+                except Exception as e:
+                    print(f"Warning: Error processing {file_path}: {e}")
+            
+            if processed_count > 0:
+                print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
+            else:
+                print("\nℹ️  No files with _Id fields found for primary key injection")
+        else:
+            print("Warning: Could not get client files for primary key injection")
+            
+    except ImportError as e:
+        print(f"Warning: Could not import inject_primary_key_methods: {e}")
+    except Exception as e:
+        print(f"Error injecting primary key methods: {e}")
+        import traceback
+        traceback.print_exc()
+    
+    # THEN: Run the master serializer script (00_process_serializable_classes.py) from arduinolib1
+    # This will comment out the _Entity macro after we've already processed it
     # Find the serializer directory
     try:
         # Get the directory of arduinolib1_scripts
@@ -231,50 +272,10 @@ def execute_scripts(project_dir, library_dir):
                 
                 print(f"\n✅ Successfully executed arduinolib1 serializer")
                 
-                # After serializer scripts complete, inject primary key methods for all files with _Id fields
-                print(f"\n{'=' * 60}")
-                print("🚀 Injecting primary key methods for classes with _Id fields...")
-                print(f"{'=' * 60}\n")
-                
-                try:
-                    # Add arduinolib3_scripts to path
-                    current_file = Path(__file__).resolve()
-                    arduinolib3_scripts_dir = current_file.parent
-                    sys.path.insert(0, str(arduinolib3_scripts_dir))
-                    
-                    from arduinolib3_core.inject_primary_key_methods import process_file
-                    
-                    # Get all client files to process
-                    if HAS_GET_CLIENT_FILES and project_dir:
-                        client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
-                        
-                        processed_count = 0
-                        for file_path in client_files:
-                            try:
-                                if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
-                                    processed_count += 1
-                            except Exception as e:
-                                print(f"Warning: Error processing {file_path}: {e}")
-                        
-                        if processed_count > 0:
-                            print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
-                        else:
-                            print("\nℹ️  No files with _Id fields found for primary key injection")
-                    else:
-                        print("Warning: Could not get client files for primary key injection")
-                        
-                except ImportError as e:
-                    print(f"Warning: Could not import inject_primary_key_methods: {e}")
-                except Exception as e:
-                    print(f"Error injecting primary key methods: {e}")
-                    import traceback
-                    traceback.print_exc()
-                
             except Exception as e:
                 print(f"Error running serializer script: {e}")
                 import traceback
                 traceback.print_exc()
-                print("\n⚠️  Skipping primary key injection due to serializer script error")
         else:
             print(f"Warning: Serializer script not found at {serializer_script_path}")
     else:

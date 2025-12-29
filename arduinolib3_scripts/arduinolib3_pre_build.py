@@ -318,7 +318,8 @@ try:
         for lib_name, lib_dir in sorted(all_libs['by_name'].items()):
             print(f"   - {lib_name}: {lib_dir}")
         
-        # Print source files from each library (only .h files, exclude arduinojson)
+        # Collect and print source files from each library (only .h files, exclude arduinojson)
+        all_header_files = []
         if HAS_GET_CLIENT_FILES:
             print(f"\n📄 Header files (.h) in all libraries (excluding arduinojson):")
             print("=" * 60)
@@ -335,7 +336,48 @@ try:
                         print(f"   {file_path}")
                     if len(lib_files) > 20:
                         print(f"   ... and {len(lib_files) - 20} more files")
+                    
+                    # Collect all files (not just first 20) for processing
+                    all_header_files.extend(lib_files)
             print("=" * 60)
+            
+            # Process each header file with implement_repository script
+            if all_header_files:
+                print(f"\n{'=' * 60}")
+                print(f"🔧 Processing {len(all_header_files)} header file(s) for repository implementation...")
+                print(f"{'=' * 60}\n")
+                
+                try:
+                    # Import implement_repository module
+                    current_file = Path(__file__).resolve()
+                    arduinolib3_scripts_dir = current_file.parent
+                    sys.path.insert(0, str(arduinolib3_scripts_dir))
+                    
+                    from arduinolib3_core.repository.implement_repository import process_file
+                    
+                    processed_count = 0
+                    implemented_count = 0
+                    
+                    for file_path in all_header_files:
+                        try:
+                            # Process file for repository implementation
+                            # Use arduinolib3 library_dir as the target for implementations
+                            if process_file(str(file_path), str(library_dir), dry_run=False):
+                                implemented_count += 1
+                            processed_count += 1
+                        except Exception as e:
+                            print(f"⚠️  Warning: Error processing {file_path}: {e}")
+                    
+                    print(f"\n✅ Processed {processed_count} file(s), implemented {implemented_count} repository(ies)")
+                    
+                except ImportError as e:
+                    print(f"⚠️  Warning: Could not import implement_repository: {e}")
+                    import traceback
+                    traceback.print_exc()
+                except Exception as e:
+                    print(f"⚠️  Error processing files for repository implementation: {e}")
+                    import traceback
+                    traceback.print_exc()
         else:
             print("\n⚠️  Could not import get_client_files to list source files")
     else:

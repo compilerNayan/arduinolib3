@@ -113,6 +113,137 @@ def get_current_library_path(project_dir=None):
     return None
 
 
+def get_all_library_dirs(project_dir=None):
+    """
+    Get all library directories (both scripts directories and root directories).
+    
+    This function discovers all library directories by:
+    1. Checking CMake FetchContent locations (build/_deps/)
+    2. Checking PlatformIO library locations (.pio/libdeps/)
+    3. Checking current directory and parent directories
+    
+    Args:
+        project_dir: Optional project directory to search from. If None, uses get_project_dir()
+    
+    Returns:
+        Dictionary with:
+        - 'scripts_dirs': List of paths to library scripts directories (e.g., arduinolib1_scripts)
+        - 'root_dirs': List of paths to library root directories (e.g., arduinolib1-src)
+        - 'by_name': Dictionary mapping library names to their root directories
+    """
+    if project_dir is None:
+        project_dir = get_project_dir()
+    
+    scripts_dirs = []
+    root_dirs = []
+    by_name = {}
+    
+    search_paths = []
+    
+    # Add current working directory
+    search_paths.append(Path(os.getcwd()))
+    
+    # Add project directory if available
+    if project_dir:
+        project_path = Path(project_dir)
+        search_paths.append(project_path)
+        
+        # Check CMake FetchContent location: build/_deps/
+        build_deps = project_path / "build" / "_deps"
+        if build_deps.exists() and build_deps.is_dir():
+            # Find all library directories in _deps
+            for lib_dir in build_deps.iterdir():
+                if lib_dir.is_dir() and lib_dir.name.endswith("-src"):
+                    lib_root = lib_dir.resolve()
+                    root_dirs.append(lib_root)
+                    
+                    # Extract library name (e.g., "arduinolib1-src" -> "arduinolib1")
+                    lib_name = lib_dir.name[:-4]  # Remove "-src" suffix
+                    by_name[lib_name] = lib_root
+                    
+                    # Check for scripts directory
+                    scripts_dir = lib_root / f"{lib_name}_scripts"
+                    if scripts_dir.exists() and scripts_dir.is_dir():
+                        scripts_dirs.append(scripts_dir.resolve())
+    
+    # Add library directory (parent of arduinolib3_scripts)
+    try:
+        library_scripts_dir = get_library_dir()
+        library_dir = library_scripts_dir.parent
+        search_paths.append(library_dir)
+        
+        # If we're in a CMake build, check sibling directories in _deps
+        if "arduinolib3-src" in str(library_dir) or "_deps" in str(library_dir):
+            parent_deps = library_dir.parent
+            if parent_deps.exists() and parent_deps.name == "_deps":
+                # Find all library directories in _deps
+                for lib_dir in parent_deps.iterdir():
+                    if lib_dir.is_dir() and lib_dir.name.endswith("-src"):
+                        lib_root = lib_dir.resolve()
+                        if lib_root not in root_dirs:
+                            root_dirs.append(lib_root)
+                            
+                            # Extract library name
+                            lib_name = lib_dir.name[:-4]  # Remove "-src" suffix
+                            if lib_name not in by_name:
+                                by_name[lib_name] = lib_root
+                            
+                            # Check for scripts directory
+                            scripts_dir = lib_root / f"{lib_name}_scripts"
+                            if scripts_dir.exists() and scripts_dir.is_dir():
+                                scripts_dirs.append(scripts_dir.resolve())
+    except ImportError:
+        pass
+    
+    # Search in each path for PlatformIO libraries
+    for start_path in search_paths:
+        current = start_path.resolve()
+        for _ in range(10):  # Search up to 10 levels
+            # Check in .pio/libdeps/ (PlatformIO location)
+            # Structure: .pio/libdeps/<env>/<library_name>/
+            pio_path = current / ".pio" / "libdeps"
+            if pio_path.exists() and pio_path.is_dir():
+                # Iterate through environment directories (e.g., esp32dev, native, etc.)
+                for env_dir in pio_path.iterdir():
+                    if env_dir.is_dir():
+                        # Now iterate through libraries in this environment
+                        for lib_dir in env_dir.iterdir():
+                            if lib_dir.is_dir():
+                                lib_root = lib_dir.resolve()
+                                if lib_root not in root_dirs:
+                                    root_dirs.append(lib_root)
+                                    
+                                    # Try to extract library name from directory name
+                                    lib_name = lib_dir.name
+                                    # Use library name as key (may have duplicates across envs, but that's okay)
+                                    if lib_name not in by_name:
+                                        by_name[lib_name] = lib_root
+                                    
+                                    # Check for scripts directory (various naming patterns)
+                                    possible_scripts_names = [
+                                        f"{lib_name}_scripts",
+                                        f"{lib_name.replace('-', '')}_scripts",
+                                        "scripts"
+                                    ]
+                                    for scripts_name in possible_scripts_names:
+                                        scripts_dir = lib_root / scripts_name
+                                        if scripts_dir.exists() and scripts_dir.is_dir():
+                                            if scripts_dir.resolve() not in scripts_dirs:
+                                                scripts_dirs.append(scripts_dir.resolve())
+                                            break
+            
+            parent = current.parent
+            if parent == current:  # Reached filesystem root
+                break
+            current = parent
+    
+    return {
+        'scripts_dirs': scripts_dirs,
+        'root_dirs': root_dirs,
+        'by_name': by_name
+    }
+
+
 def get_project_dir():
     """
     Get the project directory from PlatformIO environment or CMake environment.
@@ -157,6 +288,58 @@ else:
 
 # Print the library path with the requested message
 print(f"Hello cuckoo, this is the library full path: {library_dir}")
+
+# Get all library directories and print source files from all libraries
+print(f"\n{'=' * 60}")
+print("📚 Listing source files from all libraries...")
+print(f"{'=' * 60}")
+
+try:
+    # Try to import get_client_files from arduinolib1
+    # First, find arduinolib1_scripts
+    from arduinolib3_execute_scripts import find_library_scripts
+    arduinolib1_scripts_dir = find_library_scripts("arduinolib1_scripts")
+    
+    if arduinolib1_scripts_dir:
+        sys.path.insert(0, str(arduinolib1_scripts_dir))
+        try:
+            from arduinolib1_core.arduinolib1_get_client_files import get_client_files
+            HAS_GET_CLIENT_FILES = True
+        except ImportError:
+            HAS_GET_CLIENT_FILES = False
+    else:
+        HAS_GET_CLIENT_FILES = False
+    
+    # Get all library directories
+    all_libs = get_all_library_dirs(project_dir)
+    
+    if all_libs and all_libs.get('root_dirs'):
+        print(f"\nFound {len(all_libs['root_dirs'])} library directory(ies):")
+        for lib_name, lib_dir in sorted(all_libs['by_name'].items()):
+            print(f"   - {lib_name}: {lib_dir}")
+        
+        # Print source files from each library
+        if HAS_GET_CLIENT_FILES:
+            print(f"\n📄 Source files in all libraries:")
+            print("=" * 60)
+            for lib_name, lib_dir in sorted(all_libs['by_name'].items()):
+                lib_files = get_client_files(str(lib_dir), skip_exclusions=True, file_extensions=['.h', '.cpp', '.hpp'])
+                if lib_files:
+                    print(f"\n{lib_name} ({len(lib_files)} file(s)):")
+                    for file_path in lib_files[:20]:  # Limit to first 20 files per library
+                        print(f"   {file_path}")
+                    if len(lib_files) > 20:
+                        print(f"   ... and {len(lib_files) - 20} more files")
+            print("=" * 60)
+        else:
+            print("\n⚠️  Could not import get_client_files to list source files")
+    else:
+        print("\n⚠️  No library directories found")
+        
+except Exception as e:
+    print(f"\n⚠️  Error listing library files: {e}")
+    import traceback
+    traceback.print_exc()
 
 # Import and execute scripts
 from arduinolib3_execute_scripts import execute_scripts

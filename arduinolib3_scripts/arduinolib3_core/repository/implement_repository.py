@@ -19,7 +19,7 @@ sys.path.insert(0, str(script_dir))
 from detect_repository import detect_repository
 
 
-def generate_impl_class(class_name: str, entity_type: str, id_type: str) -> str:
+def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_file_path: str) -> str:
     """
     Generate the implementation class code.
     
@@ -27,6 +27,7 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str) -> str:
         class_name: Name of the repository class
         entity_type: Entity type (first template parameter)
         id_type: ID type (second template parameter)
+        source_file_path: Absolute path to the source file containing the repository
         
     Returns:
         String containing the complete class implementation
@@ -34,9 +35,9 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str) -> str:
     impl_class_name = f"{class_name}Impl"
     header_guard = f"_{impl_class_name.upper()}_H_"
     
-    # Include the original repository header (assuming it's in the same directory or parent)
-    # We'll use a relative path - the original file should be in src/ or include/
-    include_path = f"../{class_name}.h"
+    # Use the absolute path of the source file for the include
+    source_path = Path(source_file_path).resolve()
+    include_path = str(source_path)
     
     code = f"""#ifndef {header_guard}
 #define {header_guard}
@@ -88,7 +89,7 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
         return False
     
     # Generate the implementation class code
-    impl_code = generate_impl_class(class_name, entity_type, id_type)
+    impl_code = generate_impl_class(class_name, entity_type, id_type, file_path)
     
     if dry_run:
         print(f"Would create implementation file: {impl_file_path}")

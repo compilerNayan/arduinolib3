@@ -319,6 +319,7 @@ try:
             print(f"   - {lib_name}: {lib_dir}")
         
         # Collect and print source files from each library (only .h files, exclude arduinojson)
+        # Also collect files from the client project
         all_header_files = []
         if HAS_GET_CLIENT_FILES:
             print(f"\n📄 Header files (.h) in all libraries (excluding arduinojson):")
@@ -339,6 +340,20 @@ try:
                     
                     # Collect all files (not just first 20) for processing
                     all_header_files.extend(lib_files)
+            
+            # Also collect header files from the client project
+            if project_dir:
+                client_files = get_client_files(project_dir, skip_exclusions=True, file_extensions=['.h'])
+                if client_files:
+                    print(f"\nClient Project ({len(client_files)} .h file(s)):")
+                    for file_path in client_files[:20]:  # Limit to first 20 files
+                        print(f"   {file_path}")
+                    if len(client_files) > 20:
+                        print(f"   ... and {len(client_files) - 20} more files")
+                    
+                    # Collect all client files for processing
+                    all_header_files.extend(client_files)
+            
             print("=" * 60)
             
             # Process each header file with implement_repository script

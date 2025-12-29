@@ -318,14 +318,19 @@ try:
         for lib_name, lib_dir in sorted(all_libs['by_name'].items()):
             print(f"   - {lib_name}: {lib_dir}")
         
-        # Print source files from each library
+        # Print source files from each library (only .h files, exclude arduinojson)
         if HAS_GET_CLIENT_FILES:
-            print(f"\n📄 Source files in all libraries:")
+            print(f"\n📄 Header files (.h) in all libraries (excluding arduinojson):")
             print("=" * 60)
             for lib_name, lib_dir in sorted(all_libs['by_name'].items()):
-                lib_files = get_client_files(str(lib_dir), skip_exclusions=True, file_extensions=['.h', '.cpp', '.hpp'])
+                # Skip arduinojson library
+                if "arduinojson" in lib_name.lower():
+                    continue
+                
+                # Get only .h files
+                lib_files = get_client_files(str(lib_dir), skip_exclusions=True, file_extensions=['.h'])
                 if lib_files:
-                    print(f"\n{lib_name} ({len(lib_files)} file(s)):")
+                    print(f"\n{lib_name} ({len(lib_files)} .h file(s)):")
                     for file_path in lib_files[:20]:  # Limit to first 20 files per library
                         print(f"   {file_path}")
                     if len(lib_files) > 20:

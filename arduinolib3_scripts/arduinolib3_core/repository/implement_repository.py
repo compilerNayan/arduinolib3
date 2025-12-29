@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""
+Script to implement repository classes.
+
+Uses detect_repository to check if a file has _Repository macro.
+If it exists, creates a <class-name>Impl.h file in src/repository folder.
+"""
+
+import os
+import sys
+from pathlib import Path
+from typing import Optional, Tuple
+
+# Add parent directory to path for imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_scripts_dir = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, str(script_dir))
+
+from detect_repository import detect_repository
+
+
+def generate_impl_class(class_name: str, entity_type: str, id_type: str) -> str:
+    """
+    Generate the implementation class code.
+    
+    Args:
+        class_name: Name of the repository class
+        entity_type: Entity type (first template parameter)
+        id_type: ID type (second template parameter)
+        
+    Returns:
+        String containing the complete class implementation
+    """
+    impl_class_name = f"{class_name}Impl"
+    header_guard = f"_{impl_class_name.upper()}_H_"
+    
+    # Include the original repository header (assuming it's in the same directory or parent)
+    # We'll use a relative path - the original file should be in src/ or include/
+    include_path = f"../{class_name}.h"
+    
+    code = f"""#ifndef {header_guard}
+#define {header_guard}
+
+#include "{include_path}"
+#include "CpaRepositoryImpl.h"
+
+template<typename Entity, typename ID>
+class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryImpl<Entity, ID> {{
+    Public Virtual ~{impl_class_name}() = default;
+}};
+
+#endif // {header_guard}
+"""
+    return code
+
+
+def implement_repository(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
+    """
+    Implement a repository class if _Repository macro is found.
+    
+    Args:
+        file_path: Path to the source file to check
+        library_dir: Path to the library directory (where src/repository folder should be)
+        dry_run: If True, don't actually create the file
+        
+    Returns:
+        True if implementation was created or would be created, False otherwise
+    """
+    # Detect repository in the file
+    result = detect_repository(file_path)
+    
+    if not result:
+        return False
+    
+    class_name, entity_type, id_type = result
+    
+    # Create repository directory if it doesn't exist
+    repository_dir = Path(library_dir) / "src" / "repository"
+    repository_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Generate implementation file name
+    impl_file_name = f"{class_name}Impl.h"
+    impl_file_path = repository_dir / impl_file_name
+    
+    # Check if file already exists
+    if impl_file_path.exists():
+        print(f"⚠️  Implementation file already exists: {impl_file_path}")
+        return False
+    
+    # Generate the implementation class code
+    impl_code = generate_impl_class(class_name, entity_type, id_type)
+    
+    if dry_run:
+        print(f"Would create implementation file: {impl_file_path}")
+        print("=" * 60)
+        print(impl_code)
+        print("=" * 60)
+        return True
+    
+    # Write the implementation file
+    try:
+        with open(impl_file_path, 'w', encoding='utf-8') as f:
+            f.write(impl_code)
+        print(f"✓ Created implementation file: {impl_file_path}")
+        return True
+    except Exception as e:
+        print(f"Error creating implementation file: {e}")
+        return False
+
+
+def process_file(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
+    """
+    Process a file and implement repository if _Repository macro is found.
+    
+    Args:
+        file_path: Path to the source file
+        library_dir: Path to the library directory
+        dry_run: If True, don't actually create files
+        
+    Returns:
+        True if repository was implemented, False otherwise
+    """
+    return implement_repository(file_path, library_dir, dry_run)
+
+
+def main():
+    """Main function to handle command line arguments."""
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Implement repository classes for files with _Repository macro"
+    )
+    parser.add_argument(
+        "file_path",
+        help="Path to the C++ file to check"
+    )
+    parser.add_argument(
+        "--library-dir",
+        required=True,
+        help="Path to the library directory (where src/repository folder should be)"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be created without creating files"
+    )
+    
+    args = parser.parse_args()
+    
+    success = process_file(args.file_path, args.library_dir, args.dry_run)
+    
+    return 0 if success else 1
+
+
+# Export functions for other scripts to import
+__all__ = [
+    'generate_impl_class',
+    'implement_repository',
+    'process_file',
+    'main'
+]
+
+
+if __name__ == "__main__":
+    exit(main())
+

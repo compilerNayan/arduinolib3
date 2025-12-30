@@ -111,29 +111,19 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
 
 def calculate_include_path(source_file_path: str, impl_file_path: str) -> str:
     """
-    Calculate the relative path from source file to implementation file.
-    If they're in different directories, use absolute path.
+    Calculate the absolute path for the implementation file.
     
     Args:
         source_file_path: Path to the source repository file
         impl_file_path: Path to the generated implementation file
         
     Returns:
-        Include path (relative or absolute)
+        Absolute include path
     """
-    source_path = Path(source_file_path).resolve()
     impl_path = Path(impl_file_path).resolve()
     
-    # Try to calculate relative path
-    try:
-        relative_path = os.path.relpath(impl_path, source_path.parent)
-        # Use forward slashes for include paths
-        relative_path = relative_path.replace('\\', '/')
-        return relative_path
-    except ValueError:
-        # If relative path can't be calculated (different drives on Windows, etc.),
-        # use absolute path
-        return str(impl_path)
+    # Return absolute path
+    return str(impl_path)
 
 
 def process_repository(file_path: str, library_dir: str, dry_run: bool = False) -> bool:

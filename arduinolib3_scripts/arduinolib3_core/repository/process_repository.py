@@ -109,6 +109,63 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
         return False
 
 
+def comment_repository_macro(file_path: str, dry_run: bool = False) -> bool:
+    """
+    Comment out the _Repository macro in the source file.
+    
+    Args:
+        file_path: Path to the repository file to modify
+        dry_run: If True, don't actually modify the file
+        
+    Returns:
+        True if macro was commented (or would be commented), False otherwise
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+    except Exception as e:
+        print(f"Error reading file {file_path}: {e}")
+        return False
+    
+    lines = content.split('\n')
+    modified = False
+    
+    # Find and comment out _Repository macro
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        # Check for uncommented _Repository macro
+        if re.match(r'^\s*_Repository\s*$', stripped):
+            # Comment it out
+            indent = len(line) - len(line.lstrip())
+            lines[i] = ' ' * indent + '//' + line.lstrip()
+            modified = True
+            break
+    
+    if not modified:
+        # Check if already commented
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if re.match(r'^\s*//\s*_Repository\s*$', stripped):
+                print(f"⚠️  _Repository macro already commented in {file_path}")
+                return True
+        print(f"⚠️  _Repository macro not found in {file_path}")
+        return False
+    
+    if dry_run:
+        print(f"Would comment out _Repository macro in {file_path}")
+        return True
+    
+    # Write back to file
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(lines))
+        print(f"✓ Commented out _Repository macro in {file_path}")
+        return True
+    except Exception as e:
+        print(f"Error writing file {file_path}: {e}")
+        return False
+
+
 def calculate_include_path(source_file_path: str, impl_file_path: str) -> str:
     """
     Calculate the absolute path for the implementation file.
@@ -167,12 +224,19 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     # Step 5: Add include to the original repository file
     include_added = add_include_to_file(file_path, include_path, dry_run)
     
-    if include_added:
-        print(f"✅ Successfully processed repository {class_name}")
-    else:
+    if not include_added:
         print(f"⚠️  Failed to add include for repository {class_name}")
+        return False
     
-    return include_added
+    # Step 6: Comment out the _Repository macro
+    macro_commented = comment_repository_macro(file_path, dry_run)
+    
+    if include_added and macro_commented:
+        print(f"✅ Successfully processed repository {class_name}")
+        return True
+    else:
+        print(f"⚠️  Repository {class_name} processed but macro comment failed")
+        return include_added  # Return True if at least include was added
 
 
 def main():

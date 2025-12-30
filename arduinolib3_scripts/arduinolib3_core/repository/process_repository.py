@@ -40,8 +40,9 @@ def find_last_endif_position(content: str) -> Optional[int]:
     # Search from the end
     for i in range(len(lines) - 1, -1, -1):
         line = lines[i].strip()
-        # Check for #endif (with optional comment)
-        if re.match(r'^\s*#endif\s*(//.*)?$', line):
+        # Check for #endif (with optional comment after it)
+        # Match patterns like: #endif, #endif // comment, #endif/*comment*/
+        if re.match(r'^\s*#endif\s*(//.*|/\*.*\*/)?\s*$', line):
             last_endif_line = i + 1  # 1-based line number
             break
     
@@ -154,33 +155,32 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
         return False
     
     class_name, entity_type, id_type = result
+    print(f"🔍 Found repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
     
-    # Step 2: Create the implementation file
-    impl_created = implement_repository(file_path, library_dir, dry_run)
-    
-    if not impl_created:
-        # Implementation already exists or failed to create
-        if not dry_run:
-            # Check if implementation file exists
-            repository_dir = Path(library_dir) / "src" / "repository"
-            impl_file_name = f"{class_name}Impl.h"
-            impl_file_path = repository_dir / impl_file_name
-            if not impl_file_path.exists():
-                print(f"⚠️  Implementation file was not created: {impl_file_path}")
-                return False
-        else:
-            return False
-    
-    # Step 3: Calculate the path to the implementation file
+    # Step 2: Create the implementation file (or check if it exists)
     repository_dir = Path(library_dir) / "src" / "repository"
     impl_file_name = f"{class_name}Impl.h"
     impl_file_path = repository_dir / impl_file_name
     
+    # Try to create the implementation file
+    impl_created = implement_repository(file_path, library_dir, dry_run)
+    
+    # Check if implementation file exists (either newly created or already existed)
+    if not dry_run and not impl_file_path.exists():
+        print(f"⚠️  Implementation file was not created: {impl_file_path}")
+        return False
+    
     # Step 4: Calculate include path (relative from source file to impl file)
     include_path = calculate_include_path(file_path, str(impl_file_path))
+    print(f"📝 Calculated include path: {include_path}")
     
     # Step 5: Add include to the original repository file
     include_added = add_include_to_file(file_path, include_path, dry_run)
+    
+    if include_added:
+        print(f"✅ Successfully processed repository {class_name}")
+    else:
+        print(f"⚠️  Failed to add include for repository {class_name}")
     
     return include_added
 

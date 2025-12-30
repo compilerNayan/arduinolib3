@@ -363,12 +363,12 @@ try:
                 print(f"{'=' * 60}\n")
                 
                 try:
-                    # Import implement_repository module
+                    # Import process_repository module
                     current_file = Path(__file__).resolve()
                     arduinolib3_scripts_dir = current_file.parent
                     sys.path.insert(0, str(arduinolib3_scripts_dir))
                     
-                    from arduinolib3_core.repository.implement_repository import process_file
+                    from arduinolib3_core.repository.process_repository import process_repository
                     
                     processed_count = 0
                     implemented_count = 0
@@ -376,8 +376,8 @@ try:
                     for file_path in all_header_files:
                         try:
                             # Process file for repository implementation
-                            # Use arduinolib3 library_dir as the target for implementations
-                            if process_file(str(file_path), str(library_dir), dry_run=False):
+                            # This will detect _Repository macro, create impl file, and add include
+                            if process_repository(str(file_path), str(library_dir), dry_run=False):
                                 implemented_count += 1
                             processed_count += 1
                         except Exception as e:

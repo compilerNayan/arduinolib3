@@ -44,7 +44,7 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
     
     if is_templated:
         # Templated repository: use template parameters
-        injected_code = f"""    Public: static {repository_ptr} GetInstance() {{
+        injected_code = f"""    Public Static {repository_ptr} GetInstance() {{
         static {repository_ptr} instance(new {impl_class_name}<Entity, ID>());
         return instance;
     }}
@@ -74,7 +74,7 @@ class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryI
 """
     else:
         # Non-templated repository: use concrete types
-        injected_code = f"""    Public: static {repository_ptr} GetInstance() {{
+        injected_code = f"""    Public Static {repository_ptr} GetInstance() {{
         static {repository_ptr} instance(new {impl_class_name}());
         return instance;
     }}

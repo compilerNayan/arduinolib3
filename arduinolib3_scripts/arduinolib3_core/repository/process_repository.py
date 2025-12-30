@@ -133,12 +133,18 @@ def comment_repository_macro(file_path: str, dry_run: bool = False) -> bool:
     # Find and comment out _Repository macro
     for i, line in enumerate(lines):
         stripped = line.strip()
-        # Check for uncommented _Repository macro
-        if re.match(r'^\s*_Repository\s*$', stripped):
-            # Comment it out
-            indent = len(line) - len(line.lstrip())
-            lines[i] = ' ' * indent + '//' + line.lstrip()
+        # Check for uncommented _Repository macro (exact match on stripped line)
+        if stripped == '_Repository':
+            # Comment it out, preserving original indentation
+            if line.startswith(' '):
+                # Has indentation, preserve it
+                indent = len(line) - len(line.lstrip())
+                lines[i] = ' ' * indent + '//' + line.lstrip()
+            else:
+                # No indentation, just add comment
+                lines[i] = '//' + line
             modified = True
+            print(f"✓ Found _Repository macro on line {i+1}, commenting it out")
             break
     
     if not modified:

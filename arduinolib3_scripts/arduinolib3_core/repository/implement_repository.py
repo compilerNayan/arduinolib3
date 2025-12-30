@@ -63,7 +63,6 @@ struct Implementation<{class_name}<Entity, ID>*> {{
     code = f"""#ifndef {header_guard}
 #define {header_guard}
 
-#include "{include_path}"
 #include "CpaRepositoryImpl.h"
 
 template<typename Entity, typename ID>

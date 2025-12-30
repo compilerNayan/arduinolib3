@@ -59,9 +59,10 @@ def extract_class_name_from_define_standard_pointers(content: str) -> Optional[s
 
 def extract_cpaRepository_info(content: str, class_name: str) -> Optional[Tuple[str, str]]:
     """Extract template parameters from CpaRepository<Type1, Type2>."""
-    # Pattern to match: class ClassName (optional final) : public CpaRepository<Type1, Type2>
+    # Pattern to match: class ClassName (optional final) : public (optional virtual) CpaRepository<Type1, Type2>
     # Handle both with and without 'final' keyword
-    pattern = rf'class\s+{re.escape(class_name)}\s+(?:final\s+)?:\s*public\s+CpaRepository\s*<\s*([^,<>]+)\s*,\s*([^,<>]+)\s*>'
+    # Handle both with and without 'virtual' keyword
+    pattern = rf'class\s+{re.escape(class_name)}\s+(?:final\s+)?:\s*public\s+(?:virtual\s+)?CpaRepository\s*<\s*([^,<>]+)\s*,\s*([^,<>]+)\s*>'
     
     match = re.search(pattern, content)
     if match:

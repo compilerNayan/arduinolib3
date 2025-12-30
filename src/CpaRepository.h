@@ -5,7 +5,7 @@
 
 template<typename Entity, typename ID>
 class CpaRepository {
-    Public Virtual ~JpaRepository() = default;
+    Public Virtual ~CpaRepository() = default;
 
     // Create: Save a new entity
     Public Virtual Entity Save(Entity& entity) = 0;

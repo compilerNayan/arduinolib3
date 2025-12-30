@@ -71,11 +71,22 @@ def extract_cpaRepository_info(content: str, class_name: str) -> Optional[Tuple[
     return None
 
 
-def detect_repository(file_path: str) -> Optional[Tuple[str, str, str]]:
+def is_class_templated(content: str, class_name: str) -> bool:
+    """Check if the repository class is templated."""
+    # Remove comments for pattern matching
+    content_no_comments = remove_comments(content)
+    
+    # Look for template<typename ...> before the class declaration
+    # Pattern: template<typename Entity, typename ID> class ClassName
+    pattern = rf'template\s*<\s*[^>]+\s*>\s*class\s+{re.escape(class_name)}'
+    return bool(re.search(pattern, content_no_comments))
+
+
+def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
     """
     Detect _Repository macro and extract class information.
     
-    Returns: (class_name, template_param1, template_param2) or None
+    Returns: (class_name, template_param1, template_param2, is_templated) or None
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -93,6 +104,9 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str]]:
     if not class_name:
         return None
     
+    # Check if class is templated
+    is_templated = is_class_templated(content, class_name)
+    
     # Remove comments for class pattern matching (to avoid issues with commented code)
     content_no_comments = remove_comments(content)
     
@@ -102,7 +116,7 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str]]:
         return None
     
     type1, type2 = template_params
-    return (class_name, type1, type2)
+    return (class_name, type1, type2, is_templated)
 
 
 def main():
@@ -115,10 +129,18 @@ def main():
     result = detect_repository(file_path)
     
     if result:
-        class_name, type1, type2 = result
-        print(f"Class: {class_name}")
-        print(f"Template Parameter 1: {type1}")
-        print(f"Template Parameter 2: {type2}")
+        if len(result) == 4:
+            class_name, type1, type2, is_templated = result
+            print(f"Class: {class_name}")
+            print(f"Template Parameter 1: {type1}")
+            print(f"Template Parameter 2: {type2}")
+            print(f"Is Templated: {is_templated}")
+        else:
+            # Backward compatibility
+            class_name, type1, type2 = result
+            print(f"Class: {class_name}")
+            print(f"Template Parameter 1: {type1}")
+            print(f"Template Parameter 2: {type2}")
         sys.exit(0)
     else:
         print("No _Repository macro found or pattern not matched.", file=sys.stderr)

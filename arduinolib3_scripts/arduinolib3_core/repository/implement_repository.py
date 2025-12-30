@@ -19,15 +19,16 @@ sys.path.insert(0, str(script_dir))
 from detect_repository import detect_repository
 
 
-def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_file_path: str) -> str:
+def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_file_path: str, is_templated: bool = True) -> str:
     """
     Generate the implementation class code.
     
     Args:
         class_name: Name of the repository class
-        entity_type: Entity type (first template parameter)
-        id_type: ID type (second template parameter)
+        entity_type: Entity type (first template parameter or concrete type)
+        id_type: ID type (second template parameter or concrete type)
         source_file_path: Absolute path to the source file containing the repository
+        is_templated: Whether the repository class is templated
         
     Returns:
         String containing the complete class implementation
@@ -39,10 +40,11 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
     source_path = Path(source_file_path).resolve()
     include_path = str(source_path)
     
-    # Generate the GetInstance method and Implementation specializations
     repository_ptr = f"{class_name}Ptr"
     
-    injected_code = f"""    Public: static {repository_ptr} GetInstance() {{
+    if is_templated:
+        # Templated repository: use template parameters
+        injected_code = f"""    Public: static {repository_ptr} GetInstance() {{
         static {repository_ptr} instance(new {impl_class_name}<Entity, ID>());
         return instance;
     }}
@@ -59,14 +61,42 @@ struct Implementation<{class_name}<Entity, ID>*> {{
     using type = {impl_class_name}<Entity, ID>*;
 }};
 """
-    
-    code = f"""#ifndef {header_guard}
+        code = f"""#ifndef {header_guard}
 #define {header_guard}
 
 #include "CpaRepositoryImpl.h"
 
 template<typename Entity, typename ID>
 class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryImpl<Entity, ID> {{
+    Public Virtual ~{impl_class_name}() = default;
+{injected_code}
+#endif // {header_guard}
+"""
+    else:
+        # Non-templated repository: use concrete types
+        injected_code = f"""    Public: static {repository_ptr} GetInstance() {{
+        static {repository_ptr} instance(new {impl_class_name}());
+        return instance;
+    }}
+
+}};
+
+template <>
+struct Implementation<{class_name}> {{
+    using type = {impl_class_name};
+}};
+
+template <>
+struct Implementation<{class_name}*> {{
+    using type = {impl_class_name}*;
+}};
+"""
+        code = f"""#ifndef {header_guard}
+#define {header_guard}
+
+#include "CpaRepositoryImpl.h"
+
+class {impl_class_name} : public {class_name}, public CpaRepositoryImpl<{entity_type}, {id_type}> {{
     Public Virtual ~{impl_class_name}() = default;
 {injected_code}
 #endif // {header_guard}
@@ -92,7 +122,12 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
     if not result:
         return False
     
-    class_name, entity_type, id_type = result
+    if len(result) == 4:
+        class_name, entity_type, id_type, is_templated = result
+    else:
+        # Backward compatibility: assume templated if not specified
+        class_name, entity_type, id_type = result
+        is_templated = True
     
     # Create repository directory if it doesn't exist
     repository_dir = Path(library_dir) / "src" / "repository"
@@ -108,7 +143,7 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
         return False
     
     # Generate the implementation class code
-    impl_code = generate_impl_class(class_name, entity_type, id_type, file_path)
+    impl_code = generate_impl_class(class_name, entity_type, id_type, file_path, is_templated)
     
     if dry_run:
         print(f"Would create implementation file: {impl_file_path}")

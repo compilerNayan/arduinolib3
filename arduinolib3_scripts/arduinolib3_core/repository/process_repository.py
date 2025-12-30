@@ -212,8 +212,17 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     if not result:
         return False
     
-    class_name, entity_type, id_type = result
-    print(f"🔍 Found repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+    if len(result) == 4:
+        class_name, entity_type, id_type, is_templated = result
+        if is_templated:
+            print(f"🔍 Found templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+        else:
+            print(f"🔍 Found non-templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+    else:
+        # Backward compatibility
+        class_name, entity_type, id_type = result
+        is_templated = True
+        print(f"🔍 Found repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
     
     # Step 2: Create the implementation file (or check if it exists)
     repository_dir = Path(library_dir) / "src" / "repository"

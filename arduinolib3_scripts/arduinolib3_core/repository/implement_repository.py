@@ -39,6 +39,27 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
     source_path = Path(source_file_path).resolve()
     include_path = str(source_path)
     
+    # Generate the GetInstance method and Implementation specializations
+    repository_ptr = f"{class_name}Ptr"
+    
+    injected_code = f"""    Public: static {repository_ptr} GetInstance() {{
+        static {repository_ptr} instance(new {impl_class_name}<Entity, ID>());
+        return instance;
+    }}
+
+}};
+
+template <typename Entity, typename ID>
+struct Implementation<{class_name}<Entity, ID>> {{
+    using type = {impl_class_name}<Entity, ID>;
+}};
+
+template <typename Entity, typename ID>
+struct Implementation<{class_name}<Entity, ID>*> {{
+    using type = {impl_class_name}<Entity, ID>*;
+}};
+"""
+    
     code = f"""#ifndef {header_guard}
 #define {header_guard}
 
@@ -48,8 +69,7 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
 template<typename Entity, typename ID>
 class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryImpl<Entity, ID> {{
     Public Virtual ~{impl_class_name}() = default;
-}};
-
+{injected_code}
 #endif // {header_guard}
 """
     return code

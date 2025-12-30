@@ -5,7 +5,7 @@
 #include <iostream>
 
 template<typename Entity, typename ID>
-class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
+class CpaRepositoryImpl : public virtual CpaRepository<Entity, ID> {
     Public Virtual ~CpaRepositoryImpl() = default;
 
     // Dummy implementations that print method names

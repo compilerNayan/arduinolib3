@@ -19,9 +19,9 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         return std::nullopt;
     }
 
-    Public Virtual StdVector<Entity> FindAll() override {
+    Public Virtual vector<Entity> FindAll() override {
         std::cout << "CpaRepositoryImpl::FindAll" << std::endl;
-        return StdVector<Entity>();
+        return vector<Entity>();
     }
 
     Public Virtual Entity Update(Entity& entity) override {

@@ -151,10 +151,15 @@ def comment_repository_macro(file_path: str, dry_run: bool = False) -> bool:
         # Check if already commented
         for i, line in enumerate(lines):
             stripped = line.strip()
-            if re.match(r'^\s*//\s*_Repository\s*$', stripped):
-                print(f"⚠️  _Repository macro already commented in {file_path}")
+            # Check for commented version (with or without spaces after //)
+            if re.match(r'^//\s*_Repository\s*$', stripped):
+                print(f"✓ _Repository macro already commented in {file_path} (line {i+1})")
                 return True
+        # Debug: print first few lines to see what we're looking at
         print(f"⚠️  _Repository macro not found in {file_path}")
+        print(f"   First 15 lines of file:")
+        for j, l in enumerate(lines[:15], 1):
+            print(f"   {j:2}: {repr(l)}")
         return False
     
     if dry_run:

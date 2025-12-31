@@ -99,7 +99,7 @@ def generate_primary_key_methods(field_type: str, field_name: str) -> str:
     methods.append("")
     
     # GetPrimaryKeyName() method
-    methods.append(f"    inline StdString GetPrimaryKeyName() {{")
+    methods.append(f"    inline Static StdString GetPrimaryKeyName() {{")
     methods.append(f'        return "{field_name}";')
     methods.append(f"    }}")
     

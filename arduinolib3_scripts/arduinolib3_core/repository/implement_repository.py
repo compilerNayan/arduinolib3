@@ -42,9 +42,38 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
     
     repository_ptr = f"{class_name}Ptr"
     
+    # Generate method implementations that delegate to CpaRepositoryImpl
     if is_templated:
         # Templated repository: use template parameters
-        injected_code = f"""    Public Static {repository_ptr} GetInstance() {{
+        method_implementations = f"""    Public Virtual Entity Save(Entity& entity) override {{
+        return CpaRepositoryImpl<Entity, ID>::Save(entity);
+    }}
+
+    Public Virtual optional<Entity> FindById(ID& id) override {{
+        return CpaRepositoryImpl<Entity, ID>::FindById(id);
+    }}
+
+    Public Virtual vector<Entity> FindAll() override {{
+        return CpaRepositoryImpl<Entity, ID>::FindAll();
+    }}
+
+    Public Virtual Entity Update(Entity& entity) override {{
+        return CpaRepositoryImpl<Entity, ID>::Update(entity);
+    }}
+
+    Public Virtual Void DeleteById(ID& id) override {{
+        CpaRepositoryImpl<Entity, ID>::DeleteById(id);
+    }}
+
+    Public Virtual Void Delete(Entity& entity) override {{
+        CpaRepositoryImpl<Entity, ID>::Delete(entity);
+    }}
+
+    Public Virtual Bool ExistsById(ID& id) override {{
+        return CpaRepositoryImpl<Entity, ID>::ExistsById(id);
+    }}
+
+    Public Static {repository_ptr} GetInstance() {{
         static {repository_ptr} instance(new {impl_class_name}<Entity, ID>());
         return instance;
     }}
@@ -69,12 +98,40 @@ struct Implementation<{class_name}<Entity, ID>*> {{
 template<typename Entity, typename ID>
 class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryImpl<Entity, ID> {{
     Public Virtual ~{impl_class_name}() = default;
-{injected_code}
+{method_implementations}
 #endif // {header_guard}
 """
     else:
         # Non-templated repository: use concrete types
-        injected_code = f"""    Public Static {repository_ptr} GetInstance() {{
+        method_implementations = f"""    Public Virtual {entity_type} Save({entity_type}& entity) override {{
+        return CpaRepositoryImpl<{entity_type}, {id_type}>::Save(entity);
+    }}
+
+    Public Virtual optional<{entity_type}> FindById({id_type}& id) override {{
+        return CpaRepositoryImpl<{entity_type}, {id_type}>::FindById(id);
+    }}
+
+    Public Virtual vector<{entity_type}> FindAll() override {{
+        return CpaRepositoryImpl<{entity_type}, {id_type}>::FindAll();
+    }}
+
+    Public Virtual {entity_type} Update({entity_type}& entity) override {{
+        return CpaRepositoryImpl<{entity_type}, {id_type}>::Update(entity);
+    }}
+
+    Public Virtual Void DeleteById({id_type}& id) override {{
+        CpaRepositoryImpl<{entity_type}, {id_type}>::DeleteById(id);
+    }}
+
+    Public Virtual Void Delete({entity_type}& entity) override {{
+        CpaRepositoryImpl<{entity_type}, {id_type}>::Delete(entity);
+    }}
+
+    Public Virtual Bool ExistsById({id_type}& id) override {{
+        return CpaRepositoryImpl<{entity_type}, {id_type}>::ExistsById(id);
+    }}
+
+    Public Static {repository_ptr} GetInstance() {{
         static {repository_ptr} instance(new {impl_class_name}());
         return instance;
     }}
@@ -98,7 +155,7 @@ struct Implementation<{class_name}*> {{
 
 class {impl_class_name} : public {class_name}, public CpaRepositoryImpl<{entity_type}, {id_type}> {{
     Public Virtual ~{impl_class_name}() = default;
-{injected_code}
+{method_implementations}
 #endif // {header_guard}
 """
     return code

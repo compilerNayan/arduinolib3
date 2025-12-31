@@ -11,8 +11,8 @@ template<typename Entity, typename ID>
 class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     Public Virtual ~CpaRepositoryImpl() = default;
 
-    AUTOWIRED
-    Protected IFileManagerPtr fileManager;
+//     AUTOWIRED
+IFileManagerPtr fileManager = Implementation<IFileManager>::type::GetInstance();
 
     // Helper method to get IDs file path
     Protected StdString GetIdsFilePath() {
@@ -72,9 +72,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         
         for (size_t i = 0; i < ids.size(); i++) {
             contents += StdString(std::to_string(ids[i]).c_str());
-            if (i < ids.size() - 1) {
-                contents += StdString("\n");
-            }
+            contents += StdString("\n"); // Always add newline, including after last ID
         }
         
         CStdString idsFilePathRef = idsFilePath;
@@ -115,8 +113,30 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             // Append ID to IDs file if it doesn't already exist
             if (!IdExistsInFile(id)) {
                 StdString idsFilePath = GetIdsFilePath();
-                StdString idStr = StdString(std::to_string(id).c_str()) + StdString("\n");
+                
+                // Read current file to check if it ends with newline
                 CStdString idsFilePathRef = idsFilePath;
+                StdString currentContents = fileManager->Read(idsFilePathRef);
+                
+                // Ensure we append with proper newline
+                // If file doesn't exist or is empty, just write the ID with newline
+                // If file exists and doesn't end with newline, add newline first, then append ID
+                StdString idStr;
+                if (currentContents.empty()) {
+                    idStr = StdString(std::to_string(id).c_str()) + StdString("\n");
+                } else {
+                    // Check if last character is newline
+                    if (currentContents.length() > 0 && 
+                        currentContents[currentContents.length() - 1] != '\n' &&
+                        currentContents[currentContents.length() - 1] != '\r') {
+                        // File doesn't end with newline, add one before appending
+                        idStr = StdString("\n") + StdString(std::to_string(id).c_str()) + StdString("\n");
+                    } else {
+                        // File ends with newline, just append ID with newline
+                        idStr = StdString(std::to_string(id).c_str()) + StdString("\n");
+                    }
+                }
+                
                 CStdString idStrRef = idStr;
                 fileManager->Append(idsFilePathRef, idStrRef);
             }
@@ -139,9 +159,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             return std::nullopt;
         }
         
-        // Deserialize entity
-        Entity entity;
-        entity.Deserialize(contents);
+        // Deserialize entity (Deserialize is a static method)
+        Entity entity = Entity::Deserialize(contents);
         
         return entity;
     }
@@ -160,8 +179,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             StdString contents = fileManager->Read(filePathRef);
             
             if (!contents.empty()) {
-                Entity entity;
-                entity.Deserialize(contents);
+                // Deserialize entity (Deserialize is a static method)
+                Entity entity = Entity::Deserialize(contents);
                 entities.push_back(entity);
             }
         }
@@ -175,8 +194,10 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         optional<ID> id = entity.GetPrimaryKey();
         
         if(id.has_value()) {
+            ID entityId = id.value();
+            
             // Construct file path
-            StdString filePath = GetFilePath(id.value());
+            StdString filePath = GetFilePath(entityId);
             
             // Serialize entity
             StdString contents = entity.Serialize();
@@ -185,6 +206,15 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             CStdString filePathRef = filePath;
             CStdString contentsRef = contents;
             fileManager->Update(filePathRef, contentsRef);
+            
+            // Add ID to IDs file if it doesn't already exist (for Update on non-existent entity)
+            if (!IdExistsInFile(entityId)) {
+                StdString idsFilePath = GetIdsFilePath();
+                StdString idStr = StdString(std::to_string(entityId).c_str()) + StdString("\n");
+                CStdString idsFilePathRef = idsFilePath;
+                CStdString idStrRef = idStr;
+                fileManager->Append(idsFilePathRef, idStrRef);
+            }
         }
         
         return entity;

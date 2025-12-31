@@ -25,20 +25,20 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString entityName = Entity::GetPrimaryKeyName();
         
         // Get generated ID (non-static method)
-        ID generatedId = entity.GetPrimaryKey();
+        optional<ID> generatedId = entity.GetPrimaryKey();
         
-        // Construct file path: DATABASE_PATH/EntityName_GeneratedID.txt
-        StdString filePath = GetFilePath(entityName, generatedId);
-        
-        // Serialize entity (non-static method)
-        StdString contents = entity.Serialize();
-        
-        // Save to file using file manager
-        CStdString filePathRef = filePath;
-        CStdString contentsRef = contents;
-        fileManager->Create(filePathRef, contentsRef);
-        
-        return entity;
+        if(generatedId.has_value()) {
+            // Construct file path: DATABASE_PATH/EntityName_GeneratedID.txt
+            StdString filePath = GetFilePath(entityName, generatedId.value());
+            
+            // Serialize entity (non-static method)
+            StdString contents = entity.Serialize();
+            
+            // Save to file using file manager
+            CStdString filePathRef = filePath;
+            CStdString contentsRef = contents;
+            fileManager->Create(filePathRef, contentsRef);
+        }
     }
 
     // Read: Find entity by ID
@@ -76,20 +76,20 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString entityName = Entity::GetPrimaryKeyName();
         
         // Get ID from entity
-        ID id = entity.GetPrimaryKey();
+        optional<ID> id = entity.GetPrimaryKey();
         
-        // Construct file path
-        StdString filePath = GetFilePath(entityName, id);
-        
-        // Serialize entity
-        StdString contents = entity.Serialize();
-        
-        // Update file using file manager
-        CStdString filePathRef = filePath;
-        CStdString contentsRef = contents;
-        fileManager->Update(filePathRef, contentsRef);
-        
-        return entity;
+        if(id.has_value()) {
+            // Construct file path
+            StdString filePath = GetFilePath(entityName, id.value());
+            
+            // Serialize entity
+            StdString contents = entity.Serialize();
+            
+            // Update file using file manager
+            CStdString filePathRef = filePath;
+            CStdString contentsRef = contents;
+            fileManager->Update(filePathRef, contentsRef);
+        }
     }
 
     // Delete: Delete entity by ID
@@ -108,10 +108,12 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Delete: Delete an entity
     Public Virtual Void Delete(Entity& entity) override {
         // Get ID from entity
-        ID id = entity.GetPrimaryKey();
+        optional<ID> id = entity.GetPrimaryKey();
         
-        // Use DeleteById to delete
-        DeleteById(id);
+        if(id.has_value()) {
+            // Use DeleteById to delete
+            DeleteById(id.value());
+        }
     }
 
     // Check if entity exists by ID

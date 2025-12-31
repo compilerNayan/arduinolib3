@@ -25,7 +25,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString entityName = entity.GetPrimaryKeyName();
         
         // Get generated ID (non-static method)
-        ID generatedId = entity.GetGeneratedID();
+        ID generatedId = entity.GetPrimaryKey();
         
         // Construct file path: DATABASE_PATH/EntityName_GeneratedID.txt
         StdString filePath = GetFilePath(entityName, generatedId);
@@ -76,7 +76,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString entityName = entity.GetPrimaryKeyName();
         
         // Get ID from entity
-        ID id = entity.GetGeneratedID();
+        ID id = entity.GetPrimaryKey();
         
         // Construct file path
         StdString filePath = GetFilePath(entityName, id);
@@ -108,7 +108,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Delete: Delete an entity
     Public Virtual Void Delete(Entity& entity) override {
         // Get ID from entity
-        ID id = entity.GetPrimaryKeyName();
+        ID id = entity.GetPrimaryKey();
         
         // Use DeleteById to delete
         DeleteById(id);

@@ -39,6 +39,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             CStdString contentsRef = contents;
             fileManager->Create(filePathRef, contentsRef);
         }
+        
+        return entity;
     }
 
     // Read: Find entity by ID
@@ -90,6 +92,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             CStdString contentsRef = contents;
             fileManager->Update(filePathRef, contentsRef);
         }
+        
+        return entity;
     }
 
     // Delete: Delete entity by ID

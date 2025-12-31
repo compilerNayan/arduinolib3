@@ -2,11 +2,15 @@
 #define _CPA_REPOSITORY_IMPL_H_
 
 #include "../CpaRepository.h"
+#include <IFileManager.h>
 #include <iostream>
 
 template<typename Entity, typename ID>
 class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     Public Virtual ~CpaRepositoryImpl() = default;
+
+    AUTOWIRED
+    Protected IFileManagerPtr fileManager;
 
     // Dummy implementations that print method names
     Public Virtual Entity Save(Entity& entity) override {

@@ -14,6 +14,12 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     AUTOWIRED
     Protected IFileManagerPtr fileManager;
 
+    // Helper method to get IDs file path
+    Protected StdString GetIdsFilePath() {
+        StdString tableName = Entity::GetTableName();
+        return StdString(DATABASE_PATH) + "/" + tableName + "_IDs.txt";
+    }
+
     // Helper method to construct file path
     Protected StdString GetFilePath(ID id) {
         // Get table name (static method)
@@ -23,14 +29,80 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         return StdString(DATABASE_PATH) + "/" + tableName + "_" + primaryKeyName + "_" + StdString(std::to_string(id).c_str()) + ".txt";
     }
 
+    // Helper method to read all IDs from the IDs file
+    Protected vector<ID> ReadAllIds() {
+        vector<ID> ids;
+        StdString idsFilePath = GetIdsFilePath();
+        CStdString idsFilePathRef = idsFilePath;
+        StdString contents = fileManager->Read(idsFilePathRef);
+        
+        if (contents.empty()) {
+            return ids;
+        }
+        
+        // Parse IDs from file (one ID per line)
+        StdString currentId;
+        for (size_t i = 0; i < contents.length(); i++) {
+            char c = contents[i];
+            if (c == '\n' || c == '\r') {
+                if (!currentId.empty()) {
+                    // Convert string to ID
+                    ID id = static_cast<ID>(std::stoll(currentId.c_str()));
+                    ids.push_back(id);
+                    currentId.clear();
+                }
+            } else {
+                currentId += c;
+            }
+        }
+        
+        // Handle last ID if file doesn't end with newline
+        if (!currentId.empty()) {
+            ID id = static_cast<ID>(std::stoll(currentId.c_str()));
+            ids.push_back(id);
+        }
+        
+        return ids;
+    }
+
+    // Helper method to write all IDs to the IDs file
+    Protected Void WriteAllIds(const vector<ID>& ids) {
+        StdString idsFilePath = GetIdsFilePath();
+        StdString contents;
+        
+        for (size_t i = 0; i < ids.size(); i++) {
+            contents += StdString(std::to_string(ids[i]).c_str());
+            if (i < ids.size() - 1) {
+                contents += StdString("\n");
+            }
+        }
+        
+        CStdString idsFilePathRef = idsFilePath;
+        CStdString contentsRef = contents;
+        fileManager->Create(idsFilePathRef, contentsRef);
+    }
+
+    // Helper method to check if ID exists in the IDs file
+    Protected Bool IdExistsInFile(ID id) {
+        vector<ID> ids = ReadAllIds();
+        for (const auto& existingId : ids) {
+            if (existingId == id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Create: Save a new entity
     Public Virtual Entity Save(Entity& entity) override {
         // Get generated ID (non-static method)
         optional<ID> generatedId = entity.GetPrimaryKey();
         
         if(generatedId.has_value()) {
+            ID id = generatedId.value();
+            
             // Construct file path: DATABASE_PATH/TableName_PrimaryKeyName_ID.txt
-            StdString filePath = GetFilePath(generatedId.value());
+            StdString filePath = GetFilePath(id);
             
             // Serialize entity (non-static method)
             StdString contents = entity.Serialize();
@@ -39,6 +111,15 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             CStdString filePathRef = filePath;
             CStdString contentsRef = contents;
             fileManager->Create(filePathRef, contentsRef);
+            
+            // Append ID to IDs file if it doesn't already exist
+            if (!IdExistsInFile(id)) {
+                StdString idsFilePath = GetIdsFilePath();
+                StdString idStr = StdString(std::to_string(id).c_str()) + StdString("\n");
+                CStdString idsFilePathRef = idsFilePath;
+                CStdString idStrRef = idStr;
+                fileManager->Append(idsFilePathRef, idStrRef);
+            }
         }
         
         return entity;
@@ -67,7 +148,25 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Read: Find all entities
     Public Virtual vector<Entity> FindAll() override {
-        return vector<Entity>();
+        vector<Entity> entities;
+        
+        // Read all IDs from the IDs file
+        vector<ID> ids = ReadAllIds();
+        
+        // For each ID, read and deserialize the entity
+        for (const auto& id : ids) {
+            StdString filePath = GetFilePath(id);
+            CStdString filePathRef = filePath;
+            StdString contents = fileManager->Read(filePathRef);
+            
+            if (!contents.empty()) {
+                Entity entity;
+                entity.Deserialize(contents);
+                entities.push_back(entity);
+            }
+        }
+        
+        return entities;
     }
 
     // Update: Update an existing entity
@@ -99,6 +198,16 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         // Delete file using file manager
         CStdString filePathRef = filePath;
         fileManager->Delete(filePathRef);
+        
+        // Remove ID from IDs file
+        vector<ID> ids = ReadAllIds();
+        vector<ID> updatedIds;
+        for (const auto& existingId : ids) {
+            if (existingId != id) {
+                updatedIds.push_back(existingId);
+            }
+        }
+        WriteAllIds(updatedIds);
     }
 
     // Delete: Delete an entity
@@ -114,14 +223,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Check if entity exists by ID
     Public Virtual Bool ExistsById(ID& id) override {
-        // Construct file path
-        StdString filePath = GetFilePath(id);
-        
-        // Try to read the file - if it returns non-empty, it exists
-        CStdString filePathRef = filePath;
-        StdString contents = fileManager->Read(filePathRef);
-        
-        return !contents.empty();
+        // Check if ID exists in the IDs file
+        return IdExistsInFile(id);
     }
 };
 

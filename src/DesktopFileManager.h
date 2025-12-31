@@ -56,6 +56,17 @@ class DesktopFileManager final : public IFileManager {
         return false;
     }
 
+    // Append: Append contents to an existing file (creates file if it doesn't exist)
+    Public Bool Append(CStdString& filename, CStdString& contents) override {
+        std::ofstream file(filename.c_str(), std::ios::out | std::ios::app);
+        if (!file.is_open()) {
+            return false;
+        }
+        file << contents.c_str();
+        file.close();
+        return true;
+    }
+
 };
 
 #endif

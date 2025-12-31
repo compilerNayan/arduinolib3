@@ -18,6 +18,9 @@ class IFileManager {
 
     // Delete: Delete a file with the given filename
     Public Virtual Bool Delete(CStdString& filename) = 0;
+
+    // Append: Append contents to an existing file (creates file if it doesn't exist)
+    Public Virtual Bool Append(CStdString& filename, CStdString& contents) = 0;
 };
 
 #endif // _IFILEMANAGER_H_

@@ -15,21 +15,22 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     Protected IFileManagerPtr fileManager;
 
     // Helper method to construct file path
-    Protected StdString GetFilePath(const StdString& entityName, ID id) {
-        return StdString(DATABASE_PATH) + "/" + entityName + "_" + StdString(std::to_string(id).c_str()) + ".txt";
+    Protected StdString GetFilePath(ID id) {
+        // Get table name (static method)
+        StdString tableName = Entity::GetTableName();
+        // Get primary key name (static method)
+        StdString primaryKeyName = Entity::GetPrimaryKeyName();
+        return StdString(DATABASE_PATH) + "/" + tableName + "_" + primaryKeyName + "_" + StdString(std::to_string(id).c_str()) + ".txt";
     }
 
     // Create: Save a new entity
     Public Virtual Entity Save(Entity& entity) override {
-        // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
-        
         // Get generated ID (non-static method)
         optional<ID> generatedId = entity.GetPrimaryKey();
         
         if(generatedId.has_value()) {
-            // Construct file path: DATABASE_PATH/EntityName_GeneratedID.txt
-            StdString filePath = GetFilePath(entityName, generatedId.value());
+            // Construct file path: DATABASE_PATH/TableName_PrimaryKeyName_ID.txt
+            StdString filePath = GetFilePath(generatedId.value());
             
             // Serialize entity (non-static method)
             StdString contents = entity.Serialize();
@@ -45,11 +46,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Read: Find entity by ID
     Public Virtual optional<Entity> FindById(ID& id) override {
-        // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
-        
         // Construct file path
-        StdString filePath = GetFilePath(entityName, id);
+        StdString filePath = GetFilePath(id);
         
         // Read file contents
         CStdString filePathRef = filePath;
@@ -74,15 +72,12 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Update: Update an existing entity
     Public Virtual Entity Update(Entity& entity) override {
-        // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
-        
         // Get ID from entity
         optional<ID> id = entity.GetPrimaryKey();
         
         if(id.has_value()) {
             // Construct file path
-            StdString filePath = GetFilePath(entityName, id.value());
+            StdString filePath = GetFilePath(id.value());
             
             // Serialize entity
             StdString contents = entity.Serialize();
@@ -98,11 +93,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Delete: Delete entity by ID
     Public Virtual Void DeleteById(ID& id) override {
-        // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
-        
         // Construct file path
-        StdString filePath = GetFilePath(entityName, id);
+        StdString filePath = GetFilePath(id);
         
         // Delete file using file manager
         CStdString filePathRef = filePath;
@@ -122,11 +114,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Check if entity exists by ID
     Public Virtual Bool ExistsById(ID& id) override {
-        // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
-        
         // Construct file path
-        StdString filePath = GetFilePath(entityName, id);
+        StdString filePath = GetFilePath(id);
         
         // Try to read the file - if it returns non-empty, it exists
         CStdString filePathRef = filePath;

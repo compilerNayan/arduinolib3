@@ -79,13 +79,14 @@ def find_class_boundaries(file_path: str, class_name: str) -> Optional[tuple]:
     return None
 
 
-def generate_primary_key_methods(field_type: str, field_name: str) -> str:
+def generate_primary_key_methods(field_type: str, field_name: str, class_name: str) -> str:
     """
-    Generate GetPrimaryKey() and GetPrimaryKeyName() methods.
+    Generate GetPrimaryKey(), GetPrimaryKeyName(), and GetTableName() methods.
     
     Args:
         field_type: Type of the primary key field
         field_name: Name of the primary key field
+        class_name: Name of the class
         
     Returns:
         String containing the method definitions
@@ -101,6 +102,12 @@ def generate_primary_key_methods(field_type: str, field_name: str) -> str:
     # GetPrimaryKeyName() method
     methods.append(f"    inline Static StdString GetPrimaryKeyName() {{")
     methods.append(f'        return "{field_name}";')
+    methods.append(f"    }}")
+    methods.append("")
+    
+    # GetTableName() method
+    methods.append(f"    inline Static StdString GetTableName() {{")
+    methods.append(f'        return "{class_name}";')
     methods.append(f"    }}")
     
     return "\n".join(methods)
@@ -143,12 +150,12 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     class_lines = lines[start_line - 1:end_line]
     class_content = ''.join(class_lines)
     
-    if 'GetPrimaryKey()' in class_content:
-        print(f"⚠️  GetPrimaryKey() method already exists in {class_name}, skipping injection")
+    if 'GetPrimaryKey()' in class_content or 'GetTableName()' in class_content:
+        print(f"⚠️  Primary key methods already exist in {class_name}, skipping injection")
         return False
     
     # Generate the methods code
-    methods_code = generate_primary_key_methods(field_type, field_name)
+    methods_code = generate_primary_key_methods(field_type, field_name, class_name)
     
     # Find the indentation of the closing brace
     closing_line = lines[closing_line_idx]

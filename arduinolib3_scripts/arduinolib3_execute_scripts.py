@@ -182,7 +182,7 @@ def execute_scripts(project_dir, library_dir):
     # FIRST: Inject primary key methods BEFORE serializer comments out the _Entity macro
     # This ensures we can find the _Entity macro before it gets commented
     print(f"\n{'=' * 60}")
-    print("🚀 Injecting primary key methods for classes with _Id fields (before serializer)...")
+    print("🚀 Injecting primary key methods for classes with _Id_ fields (before serializer)...")
     print(f"{'=' * 60}\n")
     
     try:
@@ -208,7 +208,7 @@ def execute_scripts(project_dir, library_dir):
             if processed_count > 0:
                 print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
             else:
-                print("\nℹ️  No files with _Id fields found for primary key injection")
+                print("\nℹ️  No files with _Id_ fields found for primary key injection")
         else:
             print("Warning: Could not get client files for primary key injection")
             

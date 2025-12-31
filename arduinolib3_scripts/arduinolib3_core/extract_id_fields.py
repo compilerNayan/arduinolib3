@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
 """
-Extract _Id Fields Script
+Extract _Id_ Fields Script
 
 This script checks if a file has the Serializable macro (or _Entity macro),
-and if it does, extracts fields marked with _Id macro.
-The _Id macro can be followed by validation macros (like NotNull, NotBlank) 
+and if it does, extracts fields marked with _Id_ macro.
+The _Id_ macro can be followed by validation macros (like NotNull, NotBlank) 
 and then the type and variable name.
 
 Patterns supported:
-- _Id
+- _Id_
   int rollNo;
   
-- _Id
+- _Id_
   StdString name;
   
-- _Id
+- _Id_
   const long digit;
   
-- _Id
+- _Id_
   NotNull
   int someVar;
 """
@@ -153,7 +153,7 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
 
 def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[str, str] = None) -> List[Dict[str, str]]:
     """
-    Extract all fields marked with _Id macro.
+    Extract all fields marked with _Id_ macro.
     
     Args:
         file_path: Path to the C++ file
@@ -221,8 +221,8 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
     macro_pattern = '|'.join(re.escape(macro) for macro in macro_names) if macro_names else ''
     validation_pattern = rf'^\s*({macro_pattern})\s*$' if macro_pattern else None
     
-    # Pattern for _Id macro
-    id_pattern = r'^\s*_Id\s*$'
+    # Pattern for _Id_ macro
+    id_pattern = r'^\s*_Id_\s*$'
     
     # Pattern for field declaration
     # Matches: "int rollNo;", "StdString name;", "const long digit;", etc.
@@ -245,7 +245,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
             i += 1
             continue
         
-        # Check for _Id macro
+        # Check for _Id_ macro
         id_match = re.search(id_pattern, stripped)
         if id_match:
             # Look ahead for field declaration (within next 15 lines, may have validation macros in between)
@@ -263,7 +263,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
                 if not next_line:
                     continue
                 
-                # Check for validation macros (can appear between _Id and field)
+                # Check for validation macros (can appear between _Id_ and field)
                 if validation_pattern and re.search(validation_pattern, next_line):
                     validation_match = re.search(validation_pattern, next_line)
                     if validation_match:
@@ -292,9 +292,9 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
                 
                 # Stop if we hit another macro or access specifier
                 if next_line and (re.search(r'^\s*(public|private|protected)\s*:', next_line, re.IGNORECASE) or 
-                                 re.search(r'^\s*(Dto|Serializable|_Entity|COMPONENT|SCOPE|VALIDATE|_Id)\s*$', next_line)):
-                    # If we hit another _Id, that's okay, we'll process it in the next iteration
-                    if re.search(r'^\s*_Id\s*$', next_line):
+                                 re.search(r'^\s*(Dto|Serializable|_Entity|COMPONENT|SCOPE|VALIDATE|_Id_)\s*$', next_line)):
+                    # If we hit another _Id_, that's okay, we'll process it in the next iteration
+                    if re.search(r'^\s*_Id_\s*$', next_line):
                         break
                     # Otherwise, stop looking
                     break
@@ -309,7 +309,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
 
 def extract_id_fields_from_file(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
     """
-    Extract _Id fields from a file that has the Serializable macro.
+    Extract _Id_ fields from a file that has the Serializable macro.
     
     Args:
         file_path: Path to the C++ file
@@ -349,7 +349,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Extract _Id fields from classes with Serializable macro"
+        description="Extract _Id_ fields from classes with Serializable macro"
     )
     parser.add_argument(
         "file_path",
@@ -368,7 +368,7 @@ def main():
     if result and result.get('has_serializable'):
         print(f"✅ Class '{result['class_name']}' has {args.macro} macro")
         id_fields = result.get('id_fields', [])
-        print(f"   Found {len(id_fields)} _Id field(s):")
+        print(f"   Found {len(id_fields)} _Id_ field(s):")
         for field in id_fields:
             validation_info = ""
             if 'validation_macros' in field and field['validation_macros']:
@@ -376,7 +376,7 @@ def main():
             print(f"     {field['type']} {field['name']}{validation_info}")
         return 0
     else:
-        print(f"❌ No class with {args.macro} macro found, or no _Id fields found")
+        print(f"❌ No class with {args.macro} macro found, or no _Id_ fields found")
         return 1
 
 

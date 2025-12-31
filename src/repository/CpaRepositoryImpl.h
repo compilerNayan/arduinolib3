@@ -22,7 +22,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Create: Save a new entity
     Public Virtual Entity Save(Entity& entity) override {
         // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
+        StdString entityName = entity.GetPrimaryKeyName();
         
         // Get generated ID (non-static method)
         ID generatedId = entity.GetGeneratedID();
@@ -44,7 +44,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Read: Find entity by ID
     Public Virtual optional<Entity> FindById(ID& id) override {
         // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
+        StdString entityName = entity.GetPrimaryKeyName();
         
         // Construct file path
         StdString filePath = GetFilePath(entityName, id);
@@ -73,7 +73,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Update: Update an existing entity
     Public Virtual Entity Update(Entity& entity) override {
         // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
+        StdString entityName = entity.GetPrimaryKeyName();
         
         // Get ID from entity
         ID id = entity.GetGeneratedID();
@@ -95,7 +95,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Delete: Delete entity by ID
     Public Virtual Void DeleteById(ID& id) override {
         // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
+        StdString entityName = entity.GetPrimaryKeyName();
         
         // Construct file path
         StdString filePath = GetFilePath(entityName, id);
@@ -108,7 +108,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Delete: Delete an entity
     Public Virtual Void Delete(Entity& entity) override {
         // Get ID from entity
-        ID id = entity.GetGeneratedID();
+        ID id = entity.GetPrimaryKeyName();
         
         // Use DeleteById to delete
         DeleteById(id);
@@ -117,7 +117,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Check if entity exists by ID
     Public Virtual Bool ExistsById(ID& id) override {
         // Get entity name (static method)
-        StdString entityName = Entity::GetPrimaryKeyName();
+        StdString entityName = entity.GetPrimaryKeyName();
         
         // Construct file path
         StdString filePath = GetFilePath(entityName, id);

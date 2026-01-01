@@ -10,7 +10,7 @@
     #define PREFERENCES_AVAILABLE
 #endif
 
-// COMPONENT
+COMPONENT
 class ArduinoFileManager final : public IFileManager {
     #ifdef PREFERENCES_AVAILABLE
     private:
@@ -101,22 +101,8 @@ class ArduinoFileManager final : public IFileManager {
                 return false;
             #endif
         }
-        public: static IFileManagerPtr GetInstance() {
-            static IFileManagerPtr instance(new ArduinoFileManager());
-            return instance;
-        }
 };
 
 #endif // ARDUINO
-template <>
-struct Implementation<IFileManager> {
-    using type = ArduinoFileManager;
-};
-
-template <>
-struct Implementation<IFileManager*> {
-    using type = ArduinoFileManager*;
-};
-
 #endif // ARDUINO_FILE_MANAGER_H
 

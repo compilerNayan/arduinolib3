@@ -1,5 +1,10 @@
 # Print message immediately when script is loaded
-print("Hello I am in arduinolib3")
+print("=" * 60)
+print("arduinolib3 pre-build script STARTING")
+print("=" * 60)
+print(f"Script location: {__file__}")
+print(f"Current working directory: {os.getcwd()}")
+print("=" * 60)
 
 # Import PlatformIO environment first (if available)
 env = None
@@ -316,6 +321,21 @@ os.environ['SERIALIZABLE_MACRO'] = '_Entity'
 # Get project directory
 project_dir = get_project_dir()
 
+# If project_dir is None, try to find it by searching for platformio.ini from current working directory
+if not project_dir:
+    print("⚠️  Project directory not found from environment, searching for platformio.ini...")
+    current = Path(os.getcwd()).resolve()
+    for _ in range(15):  # Search up to 15 levels
+        platformio_ini = current / "platformio.ini"
+        if platformio_ini.exists() and platformio_ini.is_file():
+            project_dir = str(current)
+            print(f"✓ Found project directory by searching: {project_dir}")
+            break
+        parent = current.parent
+        if parent == current:  # Reached filesystem root
+            break
+        current = parent
+
 # Get current library root directory (full path of arduinolib3 when included in client)
 library_dir = get_current_library_path(project_dir)
 if library_dir is None:
@@ -327,6 +347,9 @@ else:
 
 # Print the library path with the requested message
 print(f"Hello cuckoo, this is the library full path: {library_dir}")
+
+# Debug: Print current working directory
+print(f"Current working directory: {os.getcwd()}")
 
 # Get all library directories and print source files from all libraries
 print(f"\n{'=' * 60}")
@@ -382,16 +405,23 @@ try:
             
             # Also collect header files from the client project
             if project_dir:
-                client_files = get_client_files(project_dir, skip_exclusions=True, file_extensions=['.h'])
-                if client_files:
-                    print(f"\nClient Project ({len(client_files)} .h file(s)):")
-                    for file_path in client_files[:20]:  # Limit to first 20 files
-                        print(f"   {file_path}")
-                    if len(client_files) > 20:
-                        print(f"   ... and {len(client_files) - 20} more files")
-                    
-                    # Collect all client files for processing
-                    all_header_files.extend(client_files)
+                try:
+                    client_files = get_client_files(project_dir, skip_exclusions=True, file_extensions=['.h'])
+                    if client_files:
+                        print(f"\nClient Project ({len(client_files)} .h file(s)):")
+                        for file_path in client_files[:20]:  # Limit to first 20 files
+                            print(f"   {file_path}")
+                        if len(client_files) > 20:
+                            print(f"   ... and {len(client_files) - 20} more files")
+                        
+                        # Collect all client files for processing
+                        all_header_files.extend(client_files)
+                except Exception as e:
+                    print(f"⚠️  Warning: Could not get client files from {project_dir}: {e}")
+                    import traceback
+                    traceback.print_exc()
+            else:
+                print("⚠️  Warning: No project directory found, skipping client files")
             
             print("=" * 60)
             

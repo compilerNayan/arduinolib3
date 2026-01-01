@@ -1,3 +1,8 @@
+# Import required modules first
+import sys
+import os
+from pathlib import Path
+
 # Print message immediately when script is loaded
 print("=" * 60)
 print("arduinolib3 pre-build script STARTING")
@@ -33,10 +38,6 @@ except Exception as e:
         def __getitem__(self, key):
             raise KeyError(key)
     env = MockEnv()
-
-import sys
-import os
-from pathlib import Path
 
 
 def get_library_dir():

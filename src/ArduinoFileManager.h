@@ -1,6 +1,6 @@
+#ifdef ARDUINO
 #ifndef ARDUINO_FILE_MANAGER_H
 #define ARDUINO_FILE_MANAGER_H
-#ifdef ARDUINO
 
 // #include "IFileManager.h"
 

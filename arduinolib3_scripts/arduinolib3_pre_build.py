@@ -30,6 +30,8 @@ except NameError:
     env = MockEnv()
 except Exception as e:
     print(f"Note: Could not import PlatformIO env: {e}")
+    import traceback
+    traceback.print_exc()
     class MockEnv:
         def get(self, key, default=None):
             return default
@@ -471,8 +473,26 @@ except Exception as e:
     traceback.print_exc()
 
 # Import and execute scripts
-from arduinolib3_execute_scripts import execute_scripts
-execute_scripts(project_dir, library_dir)
+try:
+    print(f"\n{'=' * 60}")
+    print("Importing and executing scripts...")
+    print(f"{'=' * 60}")
+    from arduinolib3_execute_scripts import execute_scripts
+    print(f"✓ Successfully imported execute_scripts")
+    print(f"Calling execute_scripts with project_dir={project_dir}, library_dir={library_dir}")
+    execute_scripts(project_dir, library_dir)
+    print("✓ execute_scripts completed")
+except ImportError as e:
+    print(f"⚠️  Error importing execute_scripts: {e}")
+    import traceback
+    traceback.print_exc()
+    print(f"Python path: {sys.path}")
+except Exception as e:
+    print(f"⚠️  Error executing scripts: {e}")
+    import traceback
+    traceback.print_exc()
 
-print("arduinolib3 pre-build script completed successfully")
+print("\n" + "=" * 60)
+print("arduinolib3 pre-build script completed")
+print("=" * 60)
 

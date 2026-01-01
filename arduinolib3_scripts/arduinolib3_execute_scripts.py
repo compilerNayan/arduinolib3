@@ -98,6 +98,13 @@ def find_library_scripts(scripts_dir_name):
                 print(f"✓ Found {scripts_dir_name} (CMake): {deps_path}")
                 return deps_path
             
+            # Check sibling directories (for local development, e.g., ../arduinolib1/arduinolib1_scripts)
+            if current.parent.exists():
+                sibling = current.parent / lib_name / scripts_dir_name
+                if sibling.exists() and sibling.is_dir():
+                    print(f"✓ Found {scripts_dir_name} (sibling): {sibling}")
+                    return sibling
+            
             # Check in .pio/libdeps/ (PlatformIO location)
             # Structure: .pio/libdeps/<env>/<library_name>/
             pio_path = current / ".pio" / "libdeps"
@@ -140,7 +147,7 @@ def execute_scripts(project_dir, library_dir):
     print(f"library_dir: {library_dir}")
     
     # Get serializable macro name from environment or use default
-    serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "_Entity")
+    serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "Entity")
     globals()['serializable_macro'] = serializable_macro
     
     # Find arduinolib1_scripts directory
@@ -179,48 +186,8 @@ def execute_scripts(project_dir, library_dir):
                 print(file)
             print("=" * 60)
     
-    # FIRST: Inject primary key methods BEFORE serializer comments out the _Entity macro
-    # This ensures we can find the _Entity macro before it gets commented
-    print(f"\n{'=' * 60}")
-    print("🚀 Injecting primary key methods for classes with _Id_ fields (before serializer)...")
-    print(f"{'=' * 60}\n")
-    
-    try:
-        # Add arduinolib3_scripts to path
-        current_file = Path(__file__).resolve()
-        arduinolib3_scripts_dir = current_file.parent
-        sys.path.insert(0, str(arduinolib3_scripts_dir))
-        
-        from arduinolib3_core.inject_primary_key_methods import process_file
-        
-        # Get all client files to process
-        if HAS_GET_CLIENT_FILES and project_dir:
-            client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
-            
-            processed_count = 0
-            for file_path in client_files:
-                try:
-                    if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
-                        processed_count += 1
-                except Exception as e:
-                    print(f"Warning: Error processing {file_path}: {e}")
-            
-            if processed_count > 0:
-                print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
-            else:
-                print("\nℹ️  No files with _Id_ fields found for primary key injection")
-        else:
-            print("Warning: Could not get client files for primary key injection")
-            
-    except ImportError as e:
-        print(f"Warning: Could not import inject_primary_key_methods: {e}")
-    except Exception as e:
-        print(f"Error injecting primary key methods: {e}")
-        import traceback
-        traceback.print_exc()
-    
-    # THEN: Run the master serializer script (00_process_serializable_classes.py) from arduinolib1
-    # This will comment out the _Entity macro after we've already processed it
+    # FIRST: Run the master serializer script (00_process_serializable_classes.py) from arduinolib1
+    # This will inject serialization methods and convert //@Serializable or //@Entity to processed format
     # Find the serializer directory
     try:
         # Get the directory of arduinolib1_scripts
@@ -280,4 +247,45 @@ def execute_scripts(project_dir, library_dir):
             print(f"Warning: Serializer script not found at {serializer_script_path}")
     else:
         print(f"Warning: Serializer directory not found at {serializer_dir}")
+    
+    # THEN: Inject primary key methods AFTER serializer has processed the Entity annotation
+    # The serializer converts //@Entity to /*@Entity*/, so we need to check for both
+    print(f"\n{'=' * 60}")
+    print("🚀 Injecting primary key methods for classes with //@Id fields (after serializer)...")
+    print(f"{'=' * 60}\n")
+    
+    try:
+        # Add arduinolib3_scripts to path
+        current_file = Path(__file__).resolve()
+        arduinolib3_scripts_dir = current_file.parent
+        sys.path.insert(0, str(arduinolib3_scripts_dir))
+        
+        from arduinolib3_core.inject_primary_key_methods import process_file
+        
+        # Get all client files to process
+        if HAS_GET_CLIENT_FILES and project_dir:
+            client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
+            
+            processed_count = 0
+            for file_path in client_files:
+                try:
+                    # Process file - it will check for //@Entity or /*@Entity*/
+                    if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
+                        processed_count += 1
+                except Exception as e:
+                    print(f"Warning: Error processing {file_path}: {e}")
+            
+            if processed_count > 0:
+                print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
+            else:
+                print("\nℹ️  No files with //@Id fields found for primary key injection")
+        else:
+            print("Warning: Could not get client files for primary key injection")
+            
+    except ImportError as e:
+        print(f"Warning: Could not import inject_primary_key_methods: {e}")
+    except Exception as e:
+        print(f"Error injecting primary key methods: {e}")
+        import traceback
+        traceback.print_exc()
 

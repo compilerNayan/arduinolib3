@@ -97,13 +97,13 @@ except Exception as e:
     HAS_ARDUINOLIB1 = False
 
 
-def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
+def check_has_serializable_macro(file_path: str, serializable_macro: str = "Entity") -> Optional[Dict[str, any]]:
     """
-    Check if a file has the Serializable macro (or _Entity macro).
+    Check if a file has the //@Entity annotation.
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the macro to search for (default: "_Entity")
+        serializable_macro: Name of the annotation to search for (default: "Entity", looks for //@Entity)
         
     Returns:
         Dictionary with 'class_name', 'has_dto', 'line_number' if found, None otherwise
@@ -119,8 +119,8 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
             print(f"Error reading file '{file_path}': {e}")
             return None
         
-        # Pattern to match //@Entity annotation (case-sensitive)
-        # Also check for /*@Entity*/ (already processed, should be ignored)
+        # Pattern to match //@Entity or /*@Entity*/ annotation (case-sensitive)
+        # We accept both because serializer might have already converted it
         escaped_macro = re.escape(serializable_macro)
         serializable_annotation_pattern = rf'^//@{escaped_macro}\s*$'
         serializable_processed_pattern = rf'^/\*@{escaped_macro}\*/\s*$'
@@ -129,14 +129,36 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
         for line_num, line in enumerate(lines, 1):
             stripped_line = line.strip()
             
-            # Skip already processed annotations
-            if re.search(serializable_processed_pattern, stripped_line):
+            # Accept both //@Entity and /*@Entity*/ - both indicate an Entity class
+            # Check for processed annotation first (/*@Entity*/)
+            processed_match = re.search(serializable_processed_pattern, stripped_line)
+            if processed_match:
+                # Found /*@Entity*/, this is still a valid Entity class
+                # Continue to find the class
+                for i in range(line_num, min(line_num + 11, len(lines) + 1)):
+                    if i <= len(lines):
+                        next_line = lines[i - 1].strip()
+                        
+                        # Skip comments
+                        if next_line.startswith('//') or next_line.startswith('/*'):
+                            continue
+                        
+                        class_match = re.search(class_pattern, next_line)
+                        if class_match:
+                            class_name = class_match.group(1)
+                            return {
+                                'class_name': class_name,
+                                'has_dto': True,
+                                'dto_line': line_num,
+                                'class_line': i
+                            }
                 continue
             
             # Skip other comment types (but not //@ annotations)
             if stripped_line.startswith('/*') and not stripped_line.startswith('//@'):
                 continue
             
+            # Check for unprocessed annotation (//@Entity)
             serializable_match = re.search(serializable_annotation_pattern, stripped_line)
             if serializable_match:
                 for i in range(line_num, min(line_num + 11, len(lines) + 1)):
@@ -235,7 +257,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
     validation_pattern = rf'^\s*({macro_pattern})\s*$' if macro_pattern else None
     
     # Pattern for //@Id annotation (case-sensitive)
-    # Also check for /*@Id*/ (already processed, should be ignored)
+    # Also check for /*@Id*/ (already processed, but still valid - we should process it)
     id_annotation_pattern = r'^\s*//@Id\s*$'
     id_processed_pattern = r'^\s*/\*@Id\*/\s*$'
     
@@ -250,13 +272,8 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         line = class_lines[i]
         stripped = line.strip()
         
-        # Skip already processed annotations (/*@Id*/)
-        if re.search(id_processed_pattern, stripped):
-            i += 1
-            continue
-        
-        # Skip other comment types (but not //@ annotations)
-        if stripped.startswith('/*') and not stripped.startswith('//@'):
+        # Skip other comment types (but not //@ or /*@ annotations)
+        if stripped.startswith('/*') and not (stripped.startswith('/*@') or stripped.startswith('//@')):
             i += 1
             continue
         
@@ -265,8 +282,11 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
             i += 1
             continue
         
-        # Check for //@Id annotation
+        # Check for both //@Id and /*@Id*/ annotations (both are valid)
         id_match = re.search(id_annotation_pattern, stripped)
+        if not id_match:
+            # Also check for processed annotation (/*@Id*/)
+            id_match = re.search(id_processed_pattern, stripped)
         if id_match:
             # Look ahead for field declaration (within next 15 lines, may have validation macros in between)
             found_field = False
@@ -275,12 +295,8 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
             for j in range(i + 1, min(i + 16, len(class_lines))):
                 next_line = class_lines[j].strip()
                 
-                # Skip already processed annotations
-                if re.search(id_processed_pattern, next_line):
-                    continue
-                
-                # Skip other comment types (but not //@ annotations)
-                if next_line.startswith('/*') and not next_line.startswith('//@'):
+                # Skip other comment types (but not //@ or /*@ annotations)
+                if next_line.startswith('/*') and not (next_line.startswith('/*@') or next_line.startswith('//@')):
                     continue
                 
                 # Skip empty lines
@@ -332,13 +348,13 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
     return result
 
 
-def extract_id_fields_from_file(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
+def extract_id_fields_from_file(file_path: str, serializable_macro: str = "Entity") -> Optional[Dict[str, any]]:
     """
-    Extract _Id_ fields from a file that has the Serializable macro.
+    Extract //@Id fields from a file that has the //@Entity annotation.
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the macro to search for (default: "_Entity")
+        serializable_macro: Name of the annotation to search for (default: "Entity", looks for //@Entity)
         
     Returns:
         Dictionary with 'class_name', 'has_serializable', and 'id_fields' keys, or None if error
@@ -382,8 +398,8 @@ def main():
     )
     parser.add_argument(
         "--macro",
-        default="_Entity",
-        help="Name of the Serializable macro to search for (default: _Entity)"
+        default="Entity",
+        help="Name of the Entity annotation to search for (default: Entity, looks for //@Entity)"
     )
     
     args = parser.parse_args()

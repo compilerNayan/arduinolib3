@@ -329,6 +329,29 @@ def process_file(file_path: str, serializable_macro: str = "Entity", dry_run: bo
     # Convert //@Id to /*@Id*/ after successful injection
     if success and not dry_run:
         convert_id_annotation_to_processed(file_path, class_name, dry_run)
+        # Also convert //@Entity to /*@Entity*/ if present
+        # This ensures Entity annotation is marked as processed
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            # Check if //@Entity exists and convert it
+            if '//@Entity' in content:
+                lines = content.split('\n')
+                modified = False
+                for i, line in enumerate(lines):
+                    stripped = line.strip()
+                    if re.match(r'^(\s*)//@Entity\s*$', line):
+                        indent_match = re.match(r'^(\s*)', line)
+                        indent = indent_match.group(1) if indent_match else ""
+                        lines[i] = f'{indent}/*@Entity*/\n'
+                        modified = True
+                        if not dry_run:
+                            print(f"✓ Converted //@Entity to /*@Entity*/ in {class_name}")
+                if modified and not dry_run:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write('\n'.join(lines))
+        except Exception as e:
+            print(f"Warning: Could not convert //@Entity to /*@Entity*/: {e}")
     
     return success
 

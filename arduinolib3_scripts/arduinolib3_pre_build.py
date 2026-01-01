@@ -7,7 +7,12 @@ from pathlib import Path
 print("=" * 60)
 print("arduinolib3 pre-build script STARTING")
 print("=" * 60)
-print(f"Script location: {__file__}")
+# __file__ may not be available in PlatformIO SCons context
+try:
+    script_location = __file__
+except NameError:
+    script_location = "unknown (running in PlatformIO SCons context)"
+print(f"Script location: {script_location}")
 print(f"Current working directory: {os.getcwd()}")
 print("=" * 60)
 
@@ -52,9 +57,23 @@ def get_library_dir():
     Raises:
         ImportError: If the directory cannot be found
     """
-    cwd = Path(os.getcwd())
-    current = cwd
-    for _ in range(10):  # Search up to 10 levels
+    # Try to use __file__ if available, otherwise search from current directory
+    search_start = None
+    try:
+        # __file__ may not be available in PlatformIO SCons context
+        if '__file__' in globals():
+            search_start = Path(__file__).parent
+    except NameError:
+        pass
+    
+    # Start search from current working directory or script location
+    if search_start and search_start.exists():
+        current = search_start
+    else:
+        current = Path(os.getcwd())
+    
+    # Search up the directory tree
+    for _ in range(15):  # Search up to 15 levels
         potential = current / "arduinolib3_scripts"
         if potential.exists() and potential.is_dir():
             print(f"✓ Found library path by searching up directory tree: {potential}")
@@ -426,8 +445,13 @@ try:
                 
                 try:
                     # Import process_repository module
-                    current_file = Path(__file__).resolve()
-                    arduinolib3_scripts_dir = current_file.parent
+                    # __file__ may not be available in PlatformIO SCons context
+                    try:
+                        current_file = Path(__file__).resolve()
+                        arduinolib3_scripts_dir = current_file.parent
+                    except NameError:
+                        # Fallback: use library_scripts_dir that we already found
+                        arduinolib3_scripts_dir = library_scripts_dir
                     sys.path.insert(0, str(arduinolib3_scripts_dir))
                     
                     from arduinolib3_core.repository.process_repository import process_repository

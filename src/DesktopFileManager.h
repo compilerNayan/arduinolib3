@@ -1,5 +1,6 @@
 #ifndef DESKTOP_FILE_MANAGER
 #define DESKTOP_FILE_MANAGER
+#ifndef ARDUINO
 
 #include "IFileManager.h"
 #include <fstream>
@@ -69,5 +70,6 @@ class DesktopFileManager final : public IFileManager {
 
 };
 
-#endif
+#endif // ARDUINO
+#endif // DESKTOP_FILE_MANAGER
 

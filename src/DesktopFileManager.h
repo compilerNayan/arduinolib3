@@ -1,6 +1,7 @@
+#ifndef ARDUINO
+
 #ifndef DESKTOP_FILE_MANAGER
 #define DESKTOP_FILE_MANAGER
-#ifndef ARDUINO
 
 #include "IFileManager.h"
 #include <fstream>

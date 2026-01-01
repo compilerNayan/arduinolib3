@@ -13,7 +13,7 @@ include(FetchContent)
 FetchContent_Declare(
     arduinolib1
     GIT_REPOSITORY https://github.com/compilerNayan/arduinolib1.git
-    GIT_TAG        main  # Use the main branch
+    GIT_TAG        dev  # Use the main branch
 )
 
 FetchContent_MakeAvailable(arduinolib1)

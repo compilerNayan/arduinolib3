@@ -2,7 +2,7 @@
 #define ARDUINO_FILE_MANAGER_H
 #ifdef ARDUINO
 
-#include "IFileManager.h"
+// #include "IFileManager.h"
 
 // ESP32 Preferences library for reliable storage
 #ifdef ESP32
@@ -10,16 +10,16 @@
     #define PREFERENCES_AVAILABLE
 #endif
 
-COMPONENT
+// COMPONENT
 class ArduinoFileManager final : public IFileManager {
     #ifdef PREFERENCES_AVAILABLE
-    Private:
+    private:
         Preferences preferences;
     #endif
 
-    Public:
+    public:
         // Create: Create a new file with the given filename and contents
-        Public Bool Create(CStdString& filename, CStdString& contents) override {
+        Bool Create(CStdString& filename, CStdString& contents) override {
             #ifdef PREFERENCES_AVAILABLE
                 bool result = preferences.begin("filemanager", false);
                 if (!result) {
@@ -36,7 +36,7 @@ class ArduinoFileManager final : public IFileManager {
         }
 
         // Read: Read the contents of a file with the given filename
-        Public StdString Read(CStdString& filename) override {
+        StdString Read(CStdString& filename) override {
             #ifdef PREFERENCES_AVAILABLE
                 bool result = preferences.begin("filemanager", true); // true = read-only
                 if (!result) {
@@ -44,7 +44,8 @@ class ArduinoFileManager final : public IFileManager {
                     return StdString("");
                 }
                 
-                StdString content = preferences.getString(filename.c_str(), "").c_str();
+                String arduinoString = preferences.getString(filename.c_str(), "");
+                StdString content = StdString(arduinoString.c_str());
                 preferences.end();
                 
                 return content;
@@ -54,13 +55,13 @@ class ArduinoFileManager final : public IFileManager {
         }
 
         // Update: Update an existing file with the given filename and new contents
-        Public Bool Update(CStdString& filename, CStdString& contents) override {
+        Bool Update(CStdString& filename, CStdString& contents) override {
             // Update is same as Create (overwrites existing)
             return Create(filename, contents);
         }
 
         // Delete: Delete a file with the given filename
-        Public Bool Delete(CStdString& filename) override {
+        Bool Delete(CStdString& filename) override {
             #ifdef PREFERENCES_AVAILABLE
                 bool result = preferences.begin("filemanager", false);
                 if (!result) {
@@ -77,7 +78,7 @@ class ArduinoFileManager final : public IFileManager {
         }
 
         // Append: Append contents to an existing file (creates file if it doesn't exist)
-        Public Bool Append(CStdString& filename, CStdString& contents) override {
+        Bool Append(CStdString& filename, CStdString& contents) override {
             #ifdef PREFERENCES_AVAILABLE
                 bool result = preferences.begin("filemanager", false);
                 if (!result) {
@@ -85,7 +86,8 @@ class ArduinoFileManager final : public IFileManager {
                 }
                 
                 // Read existing content
-                StdString existingContent = preferences.getString(filename.c_str(), "");
+                String arduinoString = preferences.getString(filename.c_str(), "");
+                StdString existingContent = StdString(arduinoString.c_str());
                 
                 // Append new content
                 StdString newContent = existingContent + contents;
@@ -99,8 +101,22 @@ class ArduinoFileManager final : public IFileManager {
                 return false;
             #endif
         }
+        public: static IFileManagerPtr GetInstance() {
+            static IFileManagerPtr instance(new ArduinoFileManager());
+            return instance;
+        }
 };
 
 #endif // ARDUINO
+template <>
+struct Implementation<IFileManager> {
+    using type = ArduinoFileManager;
+};
+
+template <>
+struct Implementation<IFileManager*> {
+    using type = ArduinoFileManager*;
+};
+
 #endif // ARDUINO_FILE_MANAGER_H
 

@@ -119,23 +119,36 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
             print(f"Error reading file '{file_path}': {e}")
             return None
         
+        # Pattern to match //@Entity annotation (case-sensitive)
+        # Also check for /*@Entity*/ (already processed, should be ignored)
         escaped_macro = re.escape(serializable_macro)
-        serializable_pattern = rf'^{escaped_macro}\s*$'
+        serializable_annotation_pattern = rf'^//@{escaped_macro}\s*$'
+        serializable_processed_pattern = rf'^/\*@{escaped_macro}\*/\s*$'
         class_pattern = r'class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:[:{])'
         
         for line_num, line in enumerate(lines, 1):
             stripped_line = line.strip()
             
-            if stripped_line.startswith('//') or stripped_line.startswith('/*') or stripped_line.startswith('*'):
+            # Skip already processed annotations
+            if re.search(serializable_processed_pattern, stripped_line):
                 continue
             
-            serializable_match = re.search(serializable_pattern, stripped_line)
+            # Skip other comment types (but not //@ annotations)
+            if stripped_line.startswith('/*') and not stripped_line.startswith('//@'):
+                continue
+            
+            serializable_match = re.search(serializable_annotation_pattern, stripped_line)
             if serializable_match:
                 for i in range(line_num, min(line_num + 11, len(lines) + 1)):
                     if i <= len(lines):
                         next_line = lines[i - 1].strip()
                         
-                        if next_line.startswith('//') or next_line.startswith('/*'):
+                        # Skip already processed annotations
+                        if re.search(r'^/\*@', next_line):
+                            continue
+                        
+                        # Skip other comment types (but not //@ annotations)
+                        if next_line.startswith('/*') and not next_line.startswith('//@'):
                             continue
                         
                         class_match = re.search(class_pattern, next_line)
@@ -221,8 +234,10 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
     macro_pattern = '|'.join(re.escape(macro) for macro in macro_names) if macro_names else ''
     validation_pattern = rf'^\s*({macro_pattern})\s*$' if macro_pattern else None
     
-    # Pattern for _Id_ macro
-    id_pattern = r'^\s*_Id_\s*$'
+    # Pattern for //@Id annotation (case-sensitive)
+    # Also check for /*@Id*/ (already processed, should be ignored)
+    id_annotation_pattern = r'^\s*//@Id\s*$'
+    id_processed_pattern = r'^\s*/\*@Id\*/\s*$'
     
     # Pattern for field declaration
     # Matches: "int rollNo;", "StdString name;", "const long digit;", etc.
@@ -235,8 +250,13 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         line = class_lines[i]
         stripped = line.strip()
         
-        # Skip comments
-        if stripped.startswith('//') or stripped.startswith('/*'):
+        # Skip already processed annotations (/*@Id*/)
+        if re.search(id_processed_pattern, stripped):
+            i += 1
+            continue
+        
+        # Skip other comment types (but not //@ annotations)
+        if stripped.startswith('/*') and not stripped.startswith('//@'):
             i += 1
             continue
         
@@ -245,8 +265,8 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
             i += 1
             continue
         
-        # Check for _Id_ macro
-        id_match = re.search(id_pattern, stripped)
+        # Check for //@Id annotation
+        id_match = re.search(id_annotation_pattern, stripped)
         if id_match:
             # Look ahead for field declaration (within next 15 lines, may have validation macros in between)
             found_field = False
@@ -255,15 +275,19 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
             for j in range(i + 1, min(i + 16, len(class_lines))):
                 next_line = class_lines[j].strip()
                 
-                # Skip comments
-                if next_line.startswith('//') or next_line.startswith('/*'):
+                # Skip already processed annotations
+                if re.search(id_processed_pattern, next_line):
+                    continue
+                
+                # Skip other comment types (but not //@ annotations)
+                if next_line.startswith('/*') and not next_line.startswith('//@'):
                     continue
                 
                 # Skip empty lines
                 if not next_line:
                     continue
                 
-                # Check for validation macros (can appear between _Id_ and field)
+                # Check for validation annotations (can appear between //@Id and field)
                 if validation_pattern and re.search(validation_pattern, next_line):
                     validation_match = re.search(validation_pattern, next_line)
                     if validation_match:
@@ -290,11 +314,12 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
                         found_field = True
                     break
                 
-                # Stop if we hit another macro or access specifier
+                # Stop if we hit another annotation or access specifier
                 if next_line and (re.search(r'^\s*(public|private|protected)\s*:', next_line, re.IGNORECASE) or 
-                                 re.search(r'^\s*(Dto|Serializable|_Entity|COMPONENT|SCOPE|VALIDATE|_Id_)\s*$', next_line)):
-                    # If we hit another _Id_, that's okay, we'll process it in the next iteration
-                    if re.search(r'^\s*_Id_\s*$', next_line):
+                                 re.search(r'^\s*//@', next_line) or
+                                 re.search(r'^\s*/\*@', next_line)):
+                    # If we hit another //@Id, that's okay, we'll process it in the next iteration
+                    if re.search(id_annotation_pattern, next_line):
                         break
                     # Otherwise, stop looking
                     break
@@ -366,9 +391,9 @@ def main():
     result = extract_id_fields_from_file(args.file_path, args.macro)
     
     if result and result.get('has_serializable'):
-        print(f"✅ Class '{result['class_name']}' has {args.macro} macro")
+        print(f"✅ Class '{result['class_name']}' has //@{args.macro} annotation")
         id_fields = result.get('id_fields', [])
-        print(f"   Found {len(id_fields)} _Id_ field(s):")
+        print(f"   Found {len(id_fields)} //@Id field(s):")
         for field in id_fields:
             validation_info = ""
             if 'validation_macros' in field and field['validation_macros']:
@@ -376,7 +401,7 @@ def main():
             print(f"     {field['type']} {field['name']}{validation_info}")
         return 0
     else:
-        print(f"❌ No class with {args.macro} macro found, or no _Id_ fields found")
+        print(f"❌ No class with //@{args.macro} annotation found, or no //@Id fields found")
         return 1
 
 

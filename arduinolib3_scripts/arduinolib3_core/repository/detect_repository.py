@@ -38,14 +38,19 @@ def remove_comments(content: str) -> str:
     return content
 
 
-def find_repository_macro(content: str) -> bool:
-    """Check if _Repository macro is present (not commented)."""
-    # Remove comments first
-    content_no_comments = remove_comments(content)
+def find_repository_annotation(content: str) -> bool:
+    """Check if //@Repository annotation is present (not already processed)."""
+    # Look for //@Repository annotation (case-sensitive)
+    # Also check for /*@Repository*/ (already processed, should be ignored)
+    annotation_pattern = r'//@Repository\b'
+    processed_pattern = r'/\*@Repository\*/\b'
     
-    # Look for _Repository macro (standalone or with whitespace)
-    pattern = r'_Repository\b'
-    return bool(re.search(pattern, content_no_comments))
+    # Check for active annotation (not processed)
+    if re.search(annotation_pattern, content):
+        return True
+    
+    # If only processed annotation exists, return False (already processed)
+    return False
 
 
 def extract_class_name_from_define_standard_pointers(content: str) -> Optional[str]:
@@ -85,7 +90,7 @@ def is_class_templated(content: str, class_name: str) -> bool:
 
 def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
     """
-    Detect _Repository macro and extract class information.
+    Detect //@Repository annotation and extract class information.
     
     Returns: (class_name, template_param1, template_param2, is_templated) or None
     """
@@ -96,8 +101,8 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
         print(f"Error reading file {file_path}: {e}", file=sys.stderr)
         return None
     
-    # Check if _Repository macro is present (not commented)
-    if not find_repository_macro(content):
+    # Check if //@Repository annotation is present (not already processed)
+    if not find_repository_annotation(content):
         return None
     
     # Extract class name from DefineStandardPointers
@@ -144,7 +149,7 @@ def main():
             print(f"Template Parameter 2: {type2}")
         sys.exit(0)
     else:
-        print("No _Repository macro found or pattern not matched.", file=sys.stderr)
+        print("No //@Repository annotation found or pattern not matched.", file=sys.stderr)
         sys.exit(1)
 
 

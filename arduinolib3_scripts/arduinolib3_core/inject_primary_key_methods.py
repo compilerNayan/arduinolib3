@@ -214,13 +214,84 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
         return False
 
 
-def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: bool = False) -> bool:
+def convert_id_annotation_to_processed(file_path: str, class_name: str, dry_run: bool = False) -> bool:
     """
-    Process a file: extract _Id_ fields and inject primary key methods.
+    Convert //@Id to /*@Id*/ in a C++ file after processing.
+    This marks the annotation as processed so it won't be processed again.
+    
+    Args:
+        file_path: Path to the C++ file to modify
+        class_name: Name of the class (to find class boundaries)
+        dry_run: If True, don't actually modify the file
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            lines = file.readlines()
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return False
+    
+    # Find class boundaries
+    boundaries = find_class_boundaries(file_path, class_name)
+    if not boundaries:
+        return False
+    
+    start_line, end_line = boundaries
+    modified = False
+    
+    # Pattern to match //@Id annotation
+    id_annotation_pattern = r'^(\s*)//@Id\s*$'
+    
+    # Only process lines within the class
+    for i in range(start_line - 1, end_line):
+        if i >= len(lines):
+            break
+        
+        line = lines[i]
+        stripped = line.strip()
+        
+        # Skip already processed annotations
+        if re.match(r'^\s*/\*@Id\*/\s*$', stripped):
+            continue
+        
+        # Check if line contains //@Id annotation
+        match = re.match(id_annotation_pattern, line)
+        if match:
+            indent = match.group(1)
+            # Convert to /*@Id*/
+            if not dry_run:
+                lines[i] = f'{indent}/*@Id*/\n'
+            modified = True
+            if dry_run:
+                print(f"    Would convert: {stripped} -> /*@Id*/")
+    
+    # Write back to file if modifications were made and not dry run
+    if modified and not dry_run:
+        try:
+            with open(file_path, 'w', encoding='utf-8') as file:
+                file.writelines(lines)
+            print(f"✓ Converted //@Id to /*@Id*/ in {class_name}")
+            return True
+        except Exception as e:
+            print(f"Error writing file: {e}")
+            return False
+    elif modified and dry_run:
+        print(f"  Would convert //@Id to /*@Id*/ in {class_name}")
+        return True
+    
+    return True
+
+
+def process_file(file_path: str, serializable_macro: str = "Entity", dry_run: bool = False) -> bool:
+    """
+    Process a file: extract //@Id fields and inject primary key methods.
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the Serializable macro (default: "_Entity")
+        serializable_macro: Name of the Entity annotation (default: "Entity", looks for //@Entity)
         dry_run: If True, don't actually modify the file
         
     Returns:
@@ -230,20 +301,20 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
         print("Error: extract_id_fields module not available")
         return False
     
-    # Extract _Id_ fields
+    # Extract //@Id fields
     result = extract_id_fields_from_file(file_path, serializable_macro)
     
     if not result or not result.get('has_serializable'):
-        print(f"File {file_path} does not have {serializable_macro} macro, skipping")
+        print(f"File {file_path} does not have //@{serializable_macro} annotation, skipping")
         return False
     
     id_fields = result.get('id_fields', [])
     
     if not id_fields:
-        print(f"No _Id_ fields found in {result.get('class_name')}, skipping")
+        print(f"No //@Id fields found in {result.get('class_name')}, skipping")
         return False
     
-    # Use the first _Id_ field as the primary key
+    # Use the first //@Id field as the primary key
     # (In a real scenario, you might want to handle composite keys differently)
     primary_key_field = id_fields[0]
     field_type = primary_key_field['type']
@@ -253,7 +324,13 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     print(f"Found primary key field in {class_name}: {field_type} {field_name}")
     
     # Inject the methods
-    return inject_primary_key_methods(file_path, class_name, field_type, field_name, dry_run)
+    success = inject_primary_key_methods(file_path, class_name, field_type, field_name, dry_run)
+    
+    # Convert //@Id to /*@Id*/ after successful injection
+    if success and not dry_run:
+        convert_id_annotation_to_processed(file_path, class_name, dry_run)
+    
+    return success
 
 
 def main():
@@ -269,8 +346,8 @@ def main():
     )
     parser.add_argument(
         "--macro",
-        default="_Entity",
-        help="Name of the Serializable macro to search for (default: _Entity)"
+        default="Entity",
+        help="Name of the Entity annotation to search for (default: Entity, looks for //@Entity)"
     )
     parser.add_argument(
         "--dry-run",

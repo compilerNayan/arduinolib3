@@ -8,7 +8,7 @@
 #ifdef ARDUINO
 #define DATABASE_PATH ""
 #else
-#define DATABASE_PATH "/Users/nkurude/Downloads/db"
+#define DATABASE_PATH "/Users/nkurude/db"
 #endif
 
 template<typename Entity, typename ID>

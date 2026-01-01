@@ -5,7 +5,11 @@
 #include "../IFileManager.h"
 #include <optional>
 
-#define DATABASE_PATH "/Users/nkurude/db"
+#ifdef ARDUINO
+#define DATABASE_PATH ""
+#else
+#define DATABASE_PATH "/Users/nkurude/Downloads/db"
+#endif
 
 template<typename Entity, typename ID>
 class CpaRepositoryImpl : public CpaRepository<Entity, ID> {

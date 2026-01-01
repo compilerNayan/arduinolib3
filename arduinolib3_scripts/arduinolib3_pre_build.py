@@ -5,6 +5,7 @@ print("Hello I am in arduinolib3")
 env = None
 try:
     Import("env")
+    print("✓ PlatformIO environment detected")
 except NameError:
     # Not running in PlatformIO environment (e.g., running from CMake)
     print("Note: Not running in PlatformIO environment - some features may be limited")
@@ -12,6 +13,20 @@ except NameError:
     class MockEnv:
         def get(self, key, default=None):
             return default
+        def __contains__(self, key):
+            return False
+        def __getitem__(self, key):
+            raise KeyError(key)
+    env = MockEnv()
+except Exception as e:
+    print(f"Note: Could not import PlatformIO env: {e}")
+    class MockEnv:
+        def get(self, key, default=None):
+            return default
+        def __contains__(self, key):
+            return False
+        def __getitem__(self, key):
+            raise KeyError(key)
     env = MockEnv()
 
 import sys
@@ -254,16 +269,40 @@ def get_project_dir():
     # Try PlatformIO environment first
     project_dir = None
     if env:
-        project_dir = env.get("PROJECT_DIR", None)
+        # Try different ways to access PROJECT_DIR from PlatformIO env
+        try:
+            # PlatformIO env is a dict-like object, try direct access
+            if "PROJECT_DIR" in env:
+                project_dir = env["PROJECT_DIR"]
+            elif hasattr(env, "get"):
+                project_dir = env.get("PROJECT_DIR", None)
+            elif hasattr(env, "PROJECT_DIR"):
+                project_dir = env.PROJECT_DIR
+        except (KeyError, AttributeError, TypeError):
+            pass
     
     # If not found, try CMake environment variable
     if not project_dir:
         project_dir = os.environ.get("CMAKE_PROJECT_DIR", None)
     
+    # If still not found, try searching for platformio.ini file
+    if not project_dir:
+        current = Path(os.getcwd()).resolve()
+        for _ in range(10):  # Search up to 10 levels
+            platformio_ini = current / "platformio.ini"
+            if platformio_ini.exists() and platformio_ini.is_file():
+                project_dir = str(current)
+                print(f"✓ Found project directory by searching for platformio.ini: {project_dir}")
+                break
+            parent = current.parent
+            if parent == current:  # Reached filesystem root
+                break
+            current = parent
+    
     if project_dir:
         print(f"\nClient project directory: {project_dir}")
     else:
-        print("Warning: Could not determine PROJECT_DIR from environment")
+        print("Warning: Could not determine PROJECT_DIR from environment or by searching")
     return project_dir
 
 

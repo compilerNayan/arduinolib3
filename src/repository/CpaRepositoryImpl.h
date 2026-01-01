@@ -72,9 +72,7 @@ IFileManagerPtr fileManager = Implementation<IFileManager>::type::GetInstance();
         
         for (size_t i = 0; i < ids.size(); i++) {
             contents += StdString(std::to_string(ids[i]).c_str());
-            if (i < ids.size() - 1) {
-                contents += StdString("\n");
-            }
+            contents += StdString("\n"); // Always add newline, including after last ID
         }
         
         CStdString idsFilePathRef = idsFilePath;
@@ -222,8 +220,11 @@ IFileManagerPtr fileManager = Implementation<IFileManager>::type::GetInstance();
 
     // Check if entity exists by ID
     Public Virtual Bool ExistsById(ID& id) override {
-        // Check if ID exists in the IDs file
-        return IdExistsInFile(id);
+        // Check if the entity file exists (more reliable than checking IDs file)
+        StdString filePath = GetFilePath(id);
+        CStdString filePathRef = filePath;
+        StdString contents = fileManager->Read(filePathRef);
+        return !contents.empty();
     }
 };
 

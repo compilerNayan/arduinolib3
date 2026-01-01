@@ -271,29 +271,29 @@ def get_project_dir():
     Returns:
         str: Path to the project directory, or None if not found
     """
-    # Try PlatformIO environment first
+    # Try PlatformIO environment first (simpler approach like arduinolib2)
     project_dir = None
     if env:
-        # Try different ways to access PROJECT_DIR from PlatformIO env
         try:
-            # PlatformIO env is a dict-like object, try direct access
-            if "PROJECT_DIR" in env:
-                project_dir = env["PROJECT_DIR"]
-            elif hasattr(env, "get"):
-                project_dir = env.get("PROJECT_DIR", None)
-            elif hasattr(env, "PROJECT_DIR"):
-                project_dir = env.PROJECT_DIR
-        except (KeyError, AttributeError, TypeError):
-            pass
+            project_dir = env.get("PROJECT_DIR", None)
+            if project_dir:
+                print(f"✓ Found PROJECT_DIR from PlatformIO env: {project_dir}")
+        except (AttributeError, TypeError, KeyError) as e:
+            print(f"Note: Could not access PROJECT_DIR from env: {e}")
     
     # If not found, try CMake environment variable
     if not project_dir:
         project_dir = os.environ.get("CMAKE_PROJECT_DIR", None)
+        if project_dir:
+            print(f"✓ Found PROJECT_DIR from CMAKE_PROJECT_DIR env var: {project_dir}")
     
     # If still not found, try searching for platformio.ini file
+    # This is important for PlatformIO when script runs from library directory
     if not project_dir:
+        print("Searching for platformio.ini file...")
         current = Path(os.getcwd()).resolve()
-        for _ in range(10):  # Search up to 10 levels
+        print(f"Starting search from: {current}")
+        for i in range(15):  # Search up to 15 levels
             platformio_ini = current / "platformio.ini"
             if platformio_ini.exists() and platformio_ini.is_file():
                 project_dir = str(current)
@@ -303,11 +303,14 @@ def get_project_dir():
             if parent == current:  # Reached filesystem root
                 break
             current = parent
+            if i == 14:
+                print(f"⚠️  Reached max search depth without finding platformio.ini")
     
     if project_dir:
-        print(f"\nClient project directory: {project_dir}")
+        print(f"\n✓ Client project directory: {project_dir}")
     else:
-        print("Warning: Could not determine PROJECT_DIR from environment or by searching")
+        print("⚠️  Warning: Could not determine PROJECT_DIR from environment or by searching")
+        print(f"   Current working directory: {os.getcwd()}")
     return project_dir
 
 
@@ -320,21 +323,6 @@ os.environ['SERIALIZABLE_MACRO'] = '_Entity'
 
 # Get project directory
 project_dir = get_project_dir()
-
-# If project_dir is None, try to find it by searching for platformio.ini from current working directory
-if not project_dir:
-    print("⚠️  Project directory not found from environment, searching for platformio.ini...")
-    current = Path(os.getcwd()).resolve()
-    for _ in range(15):  # Search up to 15 levels
-        platformio_ini = current / "platformio.ini"
-        if platformio_ini.exists() and platformio_ini.is_file():
-            project_dir = str(current)
-            print(f"✓ Found project directory by searching: {project_dir}")
-            break
-        parent = current.parent
-        if parent == current:  # Reached filesystem root
-            break
-        current = parent
 
 # Get current library root directory (full path of arduinolib3 when included in client)
 library_dir = get_current_library_path(project_dir)
@@ -430,6 +418,8 @@ try:
                 print(f"\n{'=' * 60}")
                 print(f"🔧 Processing {len(all_header_files)} header file(s) for repository implementation...")
                 print(f"{'=' * 60}\n")
+                print(f"Library directory: {library_dir}")
+                print(f"Project directory: {project_dir}")
                 
                 try:
                     # Import process_repository module
@@ -444,13 +434,20 @@ try:
                     
                     for file_path in all_header_files:
                         try:
+                            print(f"Processing file: {file_path}")
                             # Process file for repository implementation
                             # This will detect _Repository macro, create impl file, and add include
-                            if process_repository(str(file_path), str(library_dir), dry_run=False):
+                            result = process_repository(str(file_path), str(library_dir), dry_run=False)
+                            if result:
+                                print(f"  ✓ Repository implementation generated for: {file_path}")
                                 implemented_count += 1
+                            else:
+                                print(f"  - No repository found in: {file_path}")
                             processed_count += 1
                         except Exception as e:
                             print(f"⚠️  Warning: Error processing {file_path}: {e}")
+                            import traceback
+                            traceback.print_exc()
                     
                     print(f"\n✅ Processed {processed_count} file(s), implemented {implemented_count} repository(ies)")
                     

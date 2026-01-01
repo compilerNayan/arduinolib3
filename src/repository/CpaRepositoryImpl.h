@@ -172,8 +172,10 @@ IFileManagerPtr fileManager = Implementation<IFileManager>::type::GetInstance();
         optional<ID> id = entity.GetPrimaryKey();
         
         if(id.has_value()) {
+            ID entityId = id.value();
+            
             // Construct file path
-            StdString filePath = GetFilePath(id.value());
+            StdString filePath = GetFilePath(entityId);
             
             // Serialize entity
             StdString contents = entity.Serialize();
@@ -182,6 +184,35 @@ IFileManagerPtr fileManager = Implementation<IFileManager>::type::GetInstance();
             CStdString filePathRef = filePath;
             CStdString contentsRef = contents;
             fileManager->Update(filePathRef, contentsRef);
+            
+            // Add ID to IDs file if it doesn't already exist (for Update on non-existent entity)
+            if (!IdExistsInFile(entityId)) {
+                StdString idsFilePath = GetIdsFilePath();
+                
+                // Read current file to check if it ends with newline
+                CStdString idsFilePathRef = idsFilePath;
+                StdString currentContents = fileManager->Read(idsFilePathRef);
+                
+                // Ensure we append with proper newline
+                StdString idStr;
+                if (currentContents.empty()) {
+                    idStr = StdString(std::to_string(entityId).c_str()) + StdString("\n");
+                } else {
+                    // Check if last character is newline
+                    if (currentContents.length() > 0 && 
+                        currentContents[currentContents.length() - 1] != '\n' &&
+                        currentContents[currentContents.length() - 1] != '\r') {
+                        // File doesn't end with newline, add one before appending
+                        idStr = StdString("\n") + StdString(std::to_string(entityId).c_str()) + StdString("\n");
+                    } else {
+                        // File ends with newline, just append ID with newline
+                        idStr = StdString(std::to_string(entityId).c_str()) + StdString("\n");
+                    }
+                }
+                
+                CStdString idStrRef = idStr;
+                fileManager->Append(idsFilePathRef, idStrRef);
+            }
         }
         
         return entity;

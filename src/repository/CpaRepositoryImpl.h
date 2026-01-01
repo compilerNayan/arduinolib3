@@ -5,7 +5,7 @@
 #include "../IFileManager.h"
 #include <optional>
 
-#define DATABASE_PATH "/Users/nkurude/Downloads/db"
+#define DATABASE_PATH "/Users/nkurude/db"
 
 template<typename Entity, typename ID>
 class CpaRepositoryImpl : public CpaRepository<Entity, ID> {

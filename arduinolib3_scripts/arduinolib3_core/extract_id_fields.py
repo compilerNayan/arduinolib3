@@ -28,7 +28,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Optional
 
-debug_print("Executing arduinolib3_core/extract_id_fields.py")
+print("Executing arduinolib3_core/extract_id_fields.py")
 
 # Add parent directory to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -87,13 +87,13 @@ try:
             import S6_discover_validation_macros
             HAS_ARDUINOLIB1 = True
         except ImportError as e:
-            debug_print(f"Warning: Could not import arduinolib1 modules: {e}")
+            print(f"Warning: Could not import arduinolib1 modules: {e}")
             HAS_ARDUINOLIB1 = False
     else:
-        debug_print("Warning: Could not find arduinolib1_scripts directory")
+        print("Warning: Could not find arduinolib1_scripts directory")
         HAS_ARDUINOLIB1 = False
 except Exception as e:
-    debug_print(f"Warning: Error setting up arduinolib1 imports: {e}")
+    print(f"Warning: Error setting up arduinolib1 imports: {e}")
     HAS_ARDUINOLIB1 = False
 
 
@@ -116,7 +116,7 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
             with open(file_path, 'r', encoding='utf-8') as file:
                 lines = file.readlines()
         except Exception as e:
-            debug_print(f"Error reading file '{file_path}': {e}")
+            print(f"Error reading file '{file_path}': {e}")
             return None
         
         # Determine annotation name based on macro name
@@ -185,7 +185,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
     except Exception as e:
-        debug_print(f"Error reading file: {e}")
+        print(f"Error reading file: {e}")
         return []
     
     # Find class boundaries
@@ -415,14 +415,14 @@ def main():
             annotation_name = "@Serializable"
         else:
             annotation_name = "@Serializable"
-        debug_print(f"✅ Class '{result['class_name']}' has {annotation_name} annotation")
+        print(f"✅ Class '{result['class_name']}' has {annotation_name} annotation")
         id_fields = result.get('id_fields', [])
-        debug_print(f"   Found {len(id_fields)} @Id field(s):")
+        print(f"   Found {len(id_fields)} @Id field(s):")
         for field in id_fields:
             validation_info = ""
             if 'validation_macros' in field and field['validation_macros']:
                 validation_info = f" (with {', '.join(field['validation_macros'])})"
-            debug_print(f"     {field['type']} {field['name']}{validation_info}")
+            print(f"     {field['type']} {field['name']}{validation_info}")
         return 0
     else:
         # Determine annotation name for display
@@ -432,21 +432,12 @@ def main():
             annotation_name = "@Serializable"
         else:
             annotation_name = "@Serializable"
-        debug_print(f"❌ No class with {annotation_name} annotation found, or no @Id fields found")
+        print(f"❌ No class with {annotation_name} annotation found, or no @Id fields found")
         return 1
 
 
 # Export functions for other scripts to import
-__all__
-
-# Import debug utility
-try:
-    from debug_utils import debug_print
-except ImportError:
-    # Fallback if debug_utils not found - create a no-op function
-    def debug_print(*args, **kwargs):
-        pass
- = [
+__all__ = [
     'check_has_serializable_macro',
     'extract_id_fields',
     'extract_id_fields_from_file',

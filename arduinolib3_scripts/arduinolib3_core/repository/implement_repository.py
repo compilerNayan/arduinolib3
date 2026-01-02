@@ -196,27 +196,27 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
     
     # Check if file already exists
     if impl_file_path.exists():
-        debug_print(f"⚠️  Implementation file already exists: {impl_file_path}")
+        print(f"⚠️  Implementation file already exists: {impl_file_path}")
         return False
     
     # Generate the implementation class code
     impl_code = generate_impl_class(class_name, entity_type, id_type, file_path, is_templated)
     
     if dry_run:
-        debug_print(f"Would create implementation file: {impl_file_path}")
-        debug_print("=" * 60)
-        debug_print(impl_code)
-        debug_print("=" * 60)
+        print(f"Would create implementation file: {impl_file_path}")
+        print("=" * 60)
+        print(impl_code)
+        print("=" * 60)
         return True
     
     # Write the implementation file
     try:
         with open(impl_file_path, 'w', encoding='utf-8') as f:
             f.write(impl_code)
-        debug_print(f"✓ Created implementation file: {impl_file_path}")
+        print(f"✓ Created implementation file: {impl_file_path}")
         return True
     except Exception as e:
-        debug_print(f"Error creating implementation file: {e}")
+        print(f"Error creating implementation file: {e}")
         return False
 
 
@@ -265,16 +265,7 @@ def main():
 
 
 # Export functions for other scripts to import
-__all__
-
-# Import debug utility
-try:
-    from debug_utils import debug_print
-except ImportError:
-    # Fallback if debug_utils not found - create a no-op function
-    def debug_print(*args, **kwargs):
-        pass
- = [
+__all__ = [
     'generate_impl_class',
     'implement_repository',
     'process_file',

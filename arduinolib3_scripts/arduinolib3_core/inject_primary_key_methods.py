@@ -2,7 +2,7 @@
 """
 Inject Primary Key Methods Script
 
-This script uses extract_id_fields to find _Id_ fields in a class,
+This script uses extract_id_fields to find @Id fields in a class,
 and injects GetPrimaryKey() and GetPrimaryKeyName() methods at the end of the class.
 """
 
@@ -216,11 +216,11 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
 
 def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: bool = False) -> bool:
     """
-    Process a file: extract _Id_ fields and inject primary key methods.
+    Process a file: extract @Id fields and inject primary key methods.
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the Serializable macro (default: "_Entity")
+        serializable_macro: Name of the macro (Serializable -> @Serializable, _Entity -> @Entity)
         dry_run: If True, don't actually modify the file
         
     Returns:
@@ -230,7 +230,7 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
         print("Error: extract_id_fields module not available")
         return False
     
-    # Extract _Id_ fields
+    # Extract @Id fields
     result = extract_id_fields_from_file(file_path, serializable_macro)
     
     if not result or not result.get('has_serializable'):
@@ -247,10 +247,10 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     id_fields = result.get('id_fields', [])
     
     if not id_fields:
-        print(f"No _Id_ fields found in {result.get('class_name')}, skipping")
+        print(f"No @Id fields found in {result.get('class_name')}, skipping")
         return False
     
-    # Use the first _Id_ field as the primary key
+    # Use the first @Id field as the primary key
     # (In a real scenario, you might want to handle composite keys differently)
     primary_key_field = id_fields[0]
     field_type = primary_key_field['type']
@@ -268,7 +268,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Inject GetPrimaryKey() methods into classes with _Id_ fields"
+        description="Inject GetPrimaryKey() methods into classes with @Id fields"
     )
     parser.add_argument(
         "file_path",

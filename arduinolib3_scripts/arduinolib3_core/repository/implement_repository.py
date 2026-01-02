@@ -264,6 +264,9 @@ def main():
     return 0 if success else 1
 
 
+# Export functions for other scripts to import
+__all__
+
 # Import debug utility
 try:
     from debug_utils import debug_print

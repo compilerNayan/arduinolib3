@@ -4,7 +4,7 @@ Extract @Id Fields Script
 
 This script checks if a file has the @Serializable or @Entity annotation,
 and if it does, extracts fields marked with @Id annotation.
-The @Id annotation can be followed by validation macros (like NotNull, NotBlank) 
+The @Id annotation can be followed by validation annotations (like @NotNull, @NotBlank) 
 and then the type and variable name.
 
 Patterns supported:
@@ -18,7 +18,7 @@ Patterns supported:
   const long digit;
   
 - /// @Id
-  NotNull
+  /// @NotNull
   int someVar;
 """
 
@@ -233,10 +233,16 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         else:
             validation_macros = {}
     
-    # Build pattern for validation macros
+    # Build pattern for validation annotations
     macro_names = list(validation_macros.keys()) if validation_macros else []
-    macro_pattern = '|'.join(re.escape(macro) for macro in macro_names) if macro_names else ''
-    validation_pattern = rf'^\s*({macro_pattern})\s*$' if macro_pattern else None
+    # Create annotation patterns (e.g., 'NotNull' -> '/// @NotNull')
+    annotation_patterns = {}
+    for macro_name in macro_names:
+        annotation_patterns[macro_name] = rf'///\s*@{re.escape(macro_name)}\b'
+    
+    # Combined pattern to match any validation annotation
+    all_annotations = '|'.join(annotation_patterns.values()) if annotation_patterns else ''
+    validation_pattern = rf'({all_annotations})' if all_annotations else None
     
     # Pattern for /// @Id or ///@Id annotation (ignoring whitespace)
     # Also check for already processed /* @Id */ pattern
@@ -286,19 +292,24 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
                 # Skip comments (but not the annotation itself)
                 if next_line.startswith('/*') and not re.search(id_processed_pattern, next_line):
                     continue
-                # Skip other single-line comments that aren't the annotation
-                if next_line.startswith('//') and not re.search(id_annotation_pattern, next_line):
+                # Skip other single-line comments that aren't annotations
+                if next_line.startswith('//') and not (re.search(id_annotation_pattern, next_line) or (validation_pattern and re.search(validation_pattern, next_line))):
                     continue
                 
                 # Skip empty lines
                 if not next_line:
                     continue
                 
-                # Check for validation macros (can appear between @Id and field)
+                # Check for validation annotations (can appear between @Id and field)
                 if validation_pattern and re.search(validation_pattern, next_line):
-                    validation_match = re.search(validation_pattern, next_line)
-                    if validation_match:
-                        validation_macros_found.append(validation_match.group(1))
+                    # Find which annotation was matched
+                    matched_annotation = None
+                    for macro_name, pattern in annotation_patterns.items():
+                        if re.search(pattern, next_line):
+                            matched_annotation = macro_name
+                            break
+                    if matched_annotation:
+                        validation_macros_found.append(matched_annotation)
                     continue
                 
                 # Check for field declaration
@@ -323,7 +334,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
                 
                 # Stop if we hit another annotation or access specifier
                 if next_line and (re.search(r'^\s*(public|private|protected)\s*:', next_line, re.IGNORECASE) or 
-                                 re.search(r'^\s*(Dto|Serializable|_Entity|COMPONENT|SCOPE|VALIDATE|///\s*@Id|///\s*@Entity|///\s*@Serializable)\s*$', next_line)):
+                                 re.search(r'^\s*(Dto|Serializable|_Entity|COMPONENT|SCOPE|VALIDATE|///\s*@(Id|Entity|Serializable|NotNull|NotEmpty|NotBlank))\s*$', next_line)):
                     # If we hit another @Id, that's okay, we'll process it in the next iteration
                     if re.search(id_annotation_pattern, next_line):
                         break

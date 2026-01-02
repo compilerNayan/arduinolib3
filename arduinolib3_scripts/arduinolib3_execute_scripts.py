@@ -8,6 +8,14 @@ import sys
 import importlib.util
 from pathlib import Path
 
+# Import debug utility
+try:
+    from debug_utils import debug_print
+except ImportError:
+    # Fallback if debug_utils not found - create a no-op function
+    def debug_print(*args, **kwargs):
+        pass
+
 
 def find_library_scripts(scripts_dir_name):
     """
@@ -275,15 +283,6 @@ def execute_scripts(project_dir, library_dir):
             except Exception as e:
                 debug_print(f"Error running serializer script: {e}")
                 import traceback
-
-# Import debug utility
-try:
-    from debug_utils import debug_print
-except ImportError:
-    # Fallback if debug_utils not found - create a no-op function
-    def debug_print(*args, **kwargs):
-        pass
-
                 traceback.print_exc()
         else:
             debug_print(f"Warning: Serializer script not found at {serializer_script_path}")

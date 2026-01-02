@@ -220,7 +220,7 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the annotation (kept for backward compatibility, but now looks for @Serializable)
+        serializable_macro: Name of the Serializable macro (default: "_Entity")
         dry_run: If True, don't actually modify the file
         
     Returns:
@@ -234,7 +234,7 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     result = extract_id_fields_from_file(file_path, serializable_macro)
     
     if not result or not result.get('has_serializable'):
-        print(f"File {file_path} does not have @Serializable annotation, skipping")
+        print(f"File {file_path} does not have {serializable_macro} macro, skipping")
         return False
     
     id_fields = result.get('id_fields', [])
@@ -270,7 +270,7 @@ def main():
     parser.add_argument(
         "--macro",
         default="_Entity",
-        help="Name of the annotation (kept for backward compatibility, but now looks for @Serializable)"
+        help="Name of the Serializable macro to search for (default: _Entity)"
     )
     parser.add_argument(
         "--dry-run",

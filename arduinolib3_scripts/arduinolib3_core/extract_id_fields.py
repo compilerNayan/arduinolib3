@@ -2,7 +2,7 @@
 """
 Extract _Id_ Fields Script
 
-This script checks if a file has the @Serializable annotation,
+This script checks if a file has the Serializable macro (or _Entity macro),
 and if it does, extracts fields marked with _Id_ macro.
 The _Id_ macro can be followed by validation macros (like NotNull, NotBlank) 
 and then the type and variable name.
@@ -99,11 +99,11 @@ except Exception as e:
 
 def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
     """
-    Check if a file has the @Serializable annotation.
+    Check if a file has the Serializable macro (or _Entity macro).
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the annotation (kept for backward compatibility, but now looks for @Serializable)
+        serializable_macro: Name of the macro to search for (default: "_Entity")
         
     Returns:
         Dictionary with 'class_name', 'has_dto', 'line_number' if found, None otherwise
@@ -119,31 +119,23 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
             print(f"Error reading file '{file_path}': {e}")
             return None
         
-        # Pattern to match /// @Serializable or ///@Serializable annotation (ignoring whitespace)
-        # Also check for already processed /* @Serializable */ pattern
-        serializable_annotation_pattern = r'///\s*@Serializable\b'
-        processed_pattern = r'/\*\s*@Serializable\s*\*/'
+        escaped_macro = re.escape(serializable_macro)
+        serializable_pattern = rf'^{escaped_macro}\s*$'
         class_pattern = r'class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:[:{])'
         
         for line_num, line in enumerate(lines, 1):
             stripped_line = line.strip()
             
-            # Check if line is already processed (/* @Serializable */)
-            if re.search(processed_pattern, stripped_line):
+            if stripped_line.startswith('//') or stripped_line.startswith('/*') or stripped_line.startswith('*'):
                 continue
             
-            # Check for @Serializable annotation (/// @Serializable or ///@Serializable)
-            serializable_match = re.search(serializable_annotation_pattern, stripped_line)
+            serializable_match = re.search(serializable_pattern, stripped_line)
             if serializable_match:
                 for i in range(line_num, min(line_num + 11, len(lines) + 1)):
                     if i <= len(lines):
                         next_line = lines[i - 1].strip()
                         
-                        # Skip comments (but not the annotation itself which is in a comment)
-                        if next_line.startswith('/*') and not re.search(processed_pattern, next_line):
-                            continue
-                        # Skip other single-line comments that aren't the annotation
-                        if next_line.startswith('//') and not re.search(serializable_annotation_pattern, next_line):
+                        if next_line.startswith('//') or next_line.startswith('/*'):
                             continue
                         
                         class_match = re.search(class_pattern, next_line)
@@ -317,16 +309,16 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
 
 def extract_id_fields_from_file(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
     """
-    Extract _Id_ fields from a file that has the @Serializable annotation.
+    Extract _Id_ fields from a file that has the Serializable macro.
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the annotation (kept for backward compatibility, but now looks for @Serializable)
+        serializable_macro: Name of the macro to search for (default: "_Entity")
         
     Returns:
         Dictionary with 'class_name', 'has_serializable', and 'id_fields' keys, or None if error
     """
-    # Check if file has @Serializable annotation
+    # Check if file has Serializable macro
     dto_info = check_has_serializable_macro(file_path, serializable_macro)
     
     if not dto_info or not dto_info.get('has_dto'):
@@ -357,7 +349,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Extract _Id_ fields from classes with @Serializable annotation"
+        description="Extract _Id_ fields from classes with Serializable macro"
     )
     parser.add_argument(
         "file_path",
@@ -366,7 +358,7 @@ def main():
     parser.add_argument(
         "--macro",
         default="_Entity",
-        help="Name of the annotation (kept for backward compatibility, but now looks for @Serializable)"
+        help="Name of the Serializable macro to search for (default: _Entity)"
     )
     
     args = parser.parse_args()

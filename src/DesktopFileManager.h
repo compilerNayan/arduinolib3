@@ -7,7 +7,7 @@
 #include <fstream>
 #include <iostream>
 
-COMPONENT
+/// @Component
 class DesktopFileManager final : public IFileManager {
     // Create: Create a new file with the given filename and contents
     Public Bool Create(CStdString& filename, CStdString& contents) override {

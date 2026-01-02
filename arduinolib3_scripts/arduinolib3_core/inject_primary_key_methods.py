@@ -292,9 +292,6 @@ def main():
     return 0 if success else 1
 
 
-# Export functions for other scripts to import
-__all__
-
 # Import debug utility
 try:
     from debug_utils import debug_print
@@ -302,7 +299,9 @@ except ImportError:
     # Fallback if debug_utils not found - create a no-op function
     def debug_print(*args, **kwargs):
         pass
- = [
+
+# Export functions for other scripts to import
+__all__ = [
     'generate_primary_key_methods',
     'inject_primary_key_methods',
     'process_file',

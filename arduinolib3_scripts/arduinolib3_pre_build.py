@@ -463,7 +463,7 @@ try:
                         try:
                             print(f"Processing file: {file_path}")
                             # Process file for repository implementation
-                            # This will detect _Repository macro, create impl file, and add include
+                            # This will detect @Repository annotation, create impl file, and add include
                             result = process_repository(str(file_path), str(library_dir), dry_run=False)
                             if result:
                                 print(f"  ✓ Repository implementation generated for: {file_path}")

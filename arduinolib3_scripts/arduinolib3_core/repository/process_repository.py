@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Script to process repository classes: detect _Repository macro, create implementation,
+Script to process repository classes: detect @Repository annotation, create implementation,
 and add include statement to the original repository file.
 
 This script:
-1. Detects _Repository macro in a file
+1. Detects @Repository annotation in a file
 2. Creates the implementation file (UserRepositoryImpl.h)
 3. Adds an include statement for the impl file in the original repository file
    (just before the last #endif, or at the end if no #endif exists)
@@ -109,16 +109,16 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
         return False
 
 
-def comment_repository_macro(file_path: str, dry_run: bool = False) -> bool:
+def comment_repository_annotation(file_path: str, dry_run: bool = False) -> bool:
     """
-    Comment out the _Repository macro in the source file.
+    Replace the @Repository annotation with processed marker in the source file.
     
     Args:
         file_path: Path to the repository file to modify
         dry_run: If True, don't actually modify the file
         
     Returns:
-        True if macro was commented (or would be commented), False otherwise
+        True if annotation was processed (or would be processed), False otherwise
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -130,47 +130,47 @@ def comment_repository_macro(file_path: str, dry_run: bool = False) -> bool:
     lines = content.split('\n')
     modified = False
     
-    # Find and comment out _Repository macro
+    # Find and replace @Repository annotation
     for i, line in enumerate(lines):
         stripped = line.strip()
-        # Check for uncommented _Repository macro (exact match on stripped line)
-        if stripped == '_Repository':
-            # Comment it out, preserving original indentation
+        # Check for /// @Repository or ///@Repository annotation (ignoring whitespace)
+        if re.match(r'^///\s*@Repository\s*$', stripped):
+            # Replace with processed marker, preserving original indentation
             if line.startswith(' '):
                 # Has indentation, preserve it
                 indent = len(line) - len(line.lstrip())
-                lines[i] = ' ' * indent + '//' + line.lstrip()
+                lines[i] = ' ' * indent + '/* @Repository */'
             else:
-                # No indentation, just add comment
-                lines[i] = '//' + line
+                # No indentation
+                lines[i] = '/* @Repository */'
             modified = True
-            print(f"✓ Found _Repository macro on line {i+1}, commenting it out")
+            print(f"✓ Found @Repository annotation on line {i+1}, marking as processed")
             break
     
     if not modified:
-        # Check if already commented
+        # Check if already processed
         for i, line in enumerate(lines):
             stripped = line.strip()
-            # Check for commented version (with or without spaces after //)
-            if re.match(r'^//\s*_Repository\s*$', stripped):
-                print(f"✓ _Repository macro already commented in {file_path} (line {i+1})")
+            # Check for processed version (/* @Repository */)
+            if re.match(r'^/\*\s*@Repository\s*\*/\s*$', stripped):
+                print(f"✓ @Repository annotation already processed in {file_path} (line {i+1})")
                 return True
         # Debug: print first few lines to see what we're looking at
-        print(f"⚠️  _Repository macro not found in {file_path}")
+        print(f"⚠️  @Repository annotation not found in {file_path}")
         print(f"   First 15 lines of file:")
         for j, l in enumerate(lines[:15], 1):
             print(f"   {j:2}: {repr(l)}")
         return False
     
     if dry_run:
-        print(f"Would comment out _Repository macro in {file_path}")
+        print(f"Would mark @Repository annotation as processed in {file_path}")
         return True
     
     # Write back to file
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
-        print(f"✓ Commented out _Repository macro in {file_path}")
+        print(f"✓ Marked @Repository annotation as processed in {file_path}")
         return True
     except Exception as e:
         print(f"Error writing file {file_path}: {e}")
@@ -196,7 +196,7 @@ def calculate_include_path(source_file_path: str, impl_file_path: str) -> str:
 
 def process_repository(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
     """
-    Process a repository file: detect macro, create implementation, and add include.
+    Process a repository file: detect annotation, create implementation, and add include.
     
     Args:
         file_path: Path to the source file to check
@@ -248,14 +248,14 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
         print(f"⚠️  Failed to add include for repository {class_name}")
         return False
     
-    # Step 6: Comment out the _Repository macro
-    macro_commented = comment_repository_macro(file_path, dry_run)
+    # Step 6: Mark the @Repository annotation as processed
+    annotation_processed = comment_repository_annotation(file_path, dry_run)
     
-    if include_added and macro_commented:
+    if include_added and annotation_processed:
         print(f"✅ Successfully processed repository {class_name}")
         return True
     else:
-        print(f"⚠️  Repository {class_name} processed but macro comment failed")
+        print(f"⚠️  Repository {class_name} processed but annotation marking failed")
         return include_added  # Return True if at least include was added
 
 
@@ -264,7 +264,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Process repository classes: detect _Repository macro, create implementation, and add include"
+        description="Process repository classes: detect @Repository annotation, create implementation, and add include"
     )
     parser.add_argument(
         "file_path",

@@ -2,7 +2,7 @@
 """
 Script to implement repository classes.
 
-Uses detect_repository to check if a file has _Repository macro.
+Uses detect_repository to check if a file has @Repository annotation.
 If it exists, creates a <class-name>Impl.h file in src/repository folder.
 """
 
@@ -163,7 +163,7 @@ class {impl_class_name} : public {class_name}, public CpaRepositoryImpl<{entity_
 
 def implement_repository(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
     """
-    Implement a repository class if _Repository macro is found.
+    Implement a repository class if @Repository annotation is found.
     
     Args:
         file_path: Path to the source file to check
@@ -222,7 +222,7 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
 
 def process_file(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
     """
-    Process a file and implement repository if _Repository macro is found.
+    Process a file and implement repository if @Repository annotation is found.
     
     Args:
         file_path: Path to the source file
@@ -240,7 +240,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Implement repository classes for files with _Repository macro"
+        description="Implement repository classes for files with @Repository annotation"
     )
     parser.add_argument(
         "file_path",

@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Script to detect _Repository macro and extract class information from C++ source files.
+Script to detect @Repository annotation and extract class information from C++ source files.
 
 Detects patterns:
-1. _Repository
+1. /// @Repository
    DefineStandardPointers(SomeClass)
    class SomeClass : public CpaRepository<Something, SomethingElse>
 
-2. _Repository
+2. /// @Repository
    DefineStandardPointers(SomeClass)
    class SomeClass final : public CpaRepository<Something, SomethingElse>
 
 3. DefineStandardPointers(SomeClass)
-   _Repository
+   /// @Repository
    class SomeClass final : public CpaRepository<Something, SomethingElse>
 
 4. DefineStandardPointers(SomeClass)
-   _Repository
+   /// @Repository
    class SomeClass : public CpaRepository<Something, SomethingElse>
 
 Returns: class_name, template_param1, template_param2
@@ -38,14 +38,23 @@ def remove_comments(content: str) -> str:
     return content
 
 
-def find_repository_macro(content: str) -> bool:
-    """Check if _Repository macro is present (not commented)."""
-    # Remove comments first
-    content_no_comments = remove_comments(content)
+def find_repository_annotation(content: str) -> bool:
+    """Check if @Repository annotation is present (not processed)."""
+    # Look for /// @Repository or ///@Repository annotation (ignoring whitespace)
+    # Also check for already processed /* @Repository */ pattern
+    # Pattern matches: /// followed by optional whitespace, then @Repository
+    pattern = r'///\s*@Repository\b'
     
-    # Look for _Repository macro (standalone or with whitespace)
-    pattern = r'_Repository\b'
-    return bool(re.search(pattern, content_no_comments))
+    # Check if annotation exists and is not already processed
+    if re.search(pattern, content):
+        # Check if it's already processed (/* @Repository */)
+        processed_pattern = r'/\*\s*@Repository\s*\*/'
+        if re.search(processed_pattern, content):
+            # Already processed, don't treat as found
+            return False
+        return True
+    
+    return False
 
 
 def extract_class_name_from_define_standard_pointers(content: str) -> Optional[str]:
@@ -85,7 +94,7 @@ def is_class_templated(content: str, class_name: str) -> bool:
 
 def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
     """
-    Detect _Repository macro and extract class information.
+    Detect @Repository annotation and extract class information.
     
     Returns: (class_name, template_param1, template_param2, is_templated) or None
     """
@@ -96,8 +105,8 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
         print(f"Error reading file {file_path}: {e}", file=sys.stderr)
         return None
     
-    # Check if _Repository macro is present (not commented)
-    if not find_repository_macro(content):
+    # Check if @Repository annotation is present (not processed)
+    if not find_repository_annotation(content):
         return None
     
     # Extract class name from DefineStandardPointers
@@ -144,7 +153,7 @@ def main():
             print(f"Template Parameter 2: {type2}")
         sys.exit(0)
     else:
-        print("No _Repository macro found or pattern not matched.", file=sys.stderr)
+        print("No @Repository annotation found or pattern not matched.", file=sys.stderr)
         sys.exit(1)
 
 

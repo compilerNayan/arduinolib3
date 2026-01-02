@@ -28,6 +28,14 @@ import os
 from pathlib import Path
 from typing import List, Dict, Optional
 
+# Import debug utility
+try:
+    from debug_utils import debug_print
+except ImportError:
+    # Fallback if debug_utils not found - create a no-op function
+    def debug_print(*args, **kwargs):
+        pass
+
 debug_print("Executing arduinolib3_core/extract_id_fields.py")
 
 # Add parent directory to path for imports

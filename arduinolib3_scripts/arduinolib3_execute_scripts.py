@@ -37,14 +37,14 @@ def find_library_scripts(scripts_dir_name):
     # Check build/_deps from current working directory (in case we're in a build directory)
     cwd_build_deps = cwd / "_deps" / lib_src_name / scripts_dir_name
     if cwd_build_deps.exists() and cwd_build_deps.is_dir():
-        print(f"✓ Found {scripts_dir_name} (CMake from CWD build): {cwd_build_deps}")
+        debug_print(f"✓ Found {scripts_dir_name} (CMake from CWD build): {cwd_build_deps}")
         return cwd_build_deps
     
     # Also check if CWD is a build directory, look for _deps
     if cwd.name == "build" or "_deps" in str(cwd):
         deps_dir = cwd / "_deps" / lib_src_name / scripts_dir_name
         if deps_dir.exists() and deps_dir.is_dir():
-            print(f"✓ Found {scripts_dir_name} (CMake from CWD _deps): {deps_dir}")
+            debug_print(f"✓ Found {scripts_dir_name} (CMake from CWD _deps): {deps_dir}")
             return deps_dir
     
     # Add project directory if available
@@ -56,7 +56,7 @@ def find_library_scripts(scripts_dir_name):
         # Check build/_deps/{lib_src_name}/{scripts_dir_name} from project directory
         build_deps = project_path / "build" / "_deps" / lib_src_name / scripts_dir_name
         if build_deps.exists() and build_deps.is_dir():
-            print(f"✓ Found {scripts_dir_name} (CMake from project): {build_deps}")
+            debug_print(f"✓ Found {scripts_dir_name} (CMake from project): {build_deps}")
             return build_deps
     
     # Add library directory (parent of arduinolib3_scripts)
@@ -72,14 +72,14 @@ def find_library_scripts(scripts_dir_name):
         if parent_deps.exists() and parent_deps.name == "_deps":
             lib_src = parent_deps / lib_src_name / scripts_dir_name
             if lib_src.exists() and lib_src.is_dir():
-                print(f"✓ Found {scripts_dir_name} (CMake sibling): {lib_src}")
+                debug_print(f"✓ Found {scripts_dir_name} (CMake sibling): {lib_src}")
                 return lib_src
             # Also check if {lib_src_name} exists but scripts might be in root
             lib_root = parent_deps / lib_src_name
             if lib_root.exists():
                 lib_scripts = lib_root / scripts_dir_name
                 if lib_scripts.exists() and lib_scripts.is_dir():
-                    print(f"✓ Found {scripts_dir_name} (CMake sibling root): {lib_scripts}")
+                    debug_print(f"✓ Found {scripts_dir_name} (CMake sibling root): {lib_scripts}")
                     return lib_scripts
     
     # Search in each path and their parent directories
@@ -89,13 +89,13 @@ def find_library_scripts(scripts_dir_name):
             # Check for {scripts_dir_name} in current directory
             potential = current / scripts_dir_name
             if potential.exists() and potential.is_dir():
-                print(f"✓ Found {scripts_dir_name}: {potential}")
+                debug_print(f"✓ Found {scripts_dir_name}: {potential}")
                 return potential
             
             # Check in build/_deps/{lib_src_name}/ (CMake FetchContent location)
             deps_path = current / "build" / "_deps" / lib_src_name / scripts_dir_name
             if deps_path.exists() and deps_path.is_dir():
-                print(f"✓ Found {scripts_dir_name} (CMake): {deps_path}")
+                debug_print(f"✓ Found {scripts_dir_name} (CMake): {deps_path}")
                 return deps_path
             
             # Check in .pio/libdeps/ (PlatformIO location)
@@ -110,7 +110,7 @@ def find_library_scripts(scripts_dir_name):
                             if lib_dir.is_dir():
                                 lib_scripts_path = lib_dir / scripts_dir_name
                                 if lib_scripts_path.exists() and lib_scripts_path.is_dir():
-                                    print(f"✓ Found {scripts_dir_name} (PlatformIO): {lib_scripts_path}")
+                                    debug_print(f"✓ Found {scripts_dir_name} (PlatformIO): {lib_scripts_path}")
                                     return lib_scripts_path
             
             parent = current.parent
@@ -118,7 +118,7 @@ def find_library_scripts(scripts_dir_name):
                 break
             current = parent
     
-    print(f"Warning: Could not find {scripts_dir_name} directory")
+    debug_print(f"Warning: Could not find {scripts_dir_name} directory")
     return None
 
 
@@ -136,8 +136,8 @@ def execute_scripts(project_dir, library_dir):
     globals()['project_dir'] = project_dir
     globals()['library_dir'] = library_dir
     
-    print(f"\nproject_dir: {project_dir}")
-    print(f"library_dir: {library_dir}")
+    debug_print(f"\nproject_dir: {project_dir}")
+    debug_print(f"library_dir: {library_dir}")
     
     # Get serializable macro name from environment or use default
     serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "_Entity")
@@ -147,7 +147,7 @@ def execute_scripts(project_dir, library_dir):
     arduinolib1_scripts_dir = find_library_scripts("arduinolib1_scripts")
     
     if not arduinolib1_scripts_dir:
-        print("Warning: Could not find arduinolib1_scripts directory. Skipping Serializable processing.")
+        debug_print("Warning: Could not find arduinolib1_scripts directory. Skipping Serializable processing.")
         return
     
     # Add arduinolib1_scripts to Python path
@@ -158,32 +158,32 @@ def execute_scripts(project_dir, library_dir):
         from arduinolib1_core.arduinolib1_get_client_files import get_client_files
         HAS_GET_CLIENT_FILES = True
     except ImportError:
-        print("Warning: Could not import get_client_files from arduinolib1")
+        debug_print("Warning: Could not import get_client_files from arduinolib1")
         HAS_GET_CLIENT_FILES = False
     
     # List client files if available
     if HAS_GET_CLIENT_FILES:
         if project_dir:
             client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
-            print(f"\nFound {len(client_files)} files in client project:")
-            print("=" * 60)
+            debug_print(f"\nFound {len(client_files)} files in client project:")
+            debug_print("=" * 60)
             for file in client_files:
-                print(file)
-            print("=" * 60)
+                debug_print(file)
+            debug_print("=" * 60)
         
         if library_dir:
             library_files = get_client_files(library_dir, skip_exclusions=True)
-            print(f"\nFound {len(library_files)} files in library:")
-            print("=" * 60)
+            debug_print(f"\nFound {len(library_files)} files in library:")
+            debug_print("=" * 60)
             for file in library_files:
-                print(file)
-            print("=" * 60)
+                debug_print(file)
+            debug_print("=" * 60)
     
     # FIRST: Inject primary key methods BEFORE serializer marks the @Entity annotation as processed
     # This ensures we can find the @Entity annotation before it gets marked as processed
-    print(f"\n{'=' * 60}")
-    print("🚀 Injecting primary key methods for classes with @Id fields (before serializer)...")
-    print(f"{'=' * 60}\n")
+    debug_print(f"\n{'=' * 60}")
+    debug_print("🚀 Injecting primary key methods for classes with @Id fields (before serializer)...")
+    debug_print(f"{'=' * 60}\n")
     
     try:
         # Add arduinolib3_scripts to path
@@ -203,19 +203,19 @@ def execute_scripts(project_dir, library_dir):
                     if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
                         processed_count += 1
                 except Exception as e:
-                    print(f"Warning: Error processing {file_path}: {e}")
+                    debug_print(f"Warning: Error processing {file_path}: {e}")
             
             if processed_count > 0:
-                print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
+                debug_print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
             else:
-                print("\nℹ️  No files with @Id fields found for primary key injection")
+                debug_print("\nℹ️  No files with @Id fields found for primary key injection")
         else:
-            print("Warning: Could not get client files for primary key injection")
+            debug_print("Warning: Could not get client files for primary key injection")
             
     except ImportError as e:
-        print(f"Warning: Could not import inject_primary_key_methods: {e}")
+        debug_print(f"Warning: Could not import inject_primary_key_methods: {e}")
     except Exception as e:
-        print(f"Error injecting primary key methods: {e}")
+        debug_print(f"Error injecting primary key methods: {e}")
         import traceback
         traceback.print_exc()
     
@@ -228,15 +228,15 @@ def execute_scripts(project_dir, library_dir):
         # serializer is in arduinolib1_serializer/
         serializer_dir = arduinolib1_scripts_path / 'arduinolib1_serializer'
     except Exception as e:
-        print(f"Error finding serializer directory: {e}")
+        debug_print(f"Error finding serializer directory: {e}")
         serializer_dir = None
     
     if serializer_dir and serializer_dir.exists():
         serializer_script_path = serializer_dir / '00_process_serializable_classes.py'
         if serializer_script_path.exists():
-            print(f"\n{'=' * 60}")
-            print("Running serializer master script: 00_process_serializable_classes.py")
-            print(f"{'=' * 60}\n")
+            debug_print(f"\n{'=' * 60}")
+            debug_print("Running serializer master script: 00_process_serializable_classes.py")
+            debug_print(f"{'=' * 60}\n")
             
             try:
                 # Set environment variables so serializer script can access project_dir and library_dir
@@ -270,14 +270,23 @@ def execute_scripts(project_dir, library_dir):
                 elif hasattr(serializer_module, 'process_all_serializable_classes'):
                     serializer_module.process_all_serializable_classes(dry_run=False)
                 
-                print(f"\n✅ Successfully executed arduinolib1 serializer")
+                debug_print(f"\n✅ Successfully executed arduinolib1 serializer")
                 
             except Exception as e:
-                print(f"Error running serializer script: {e}")
+                debug_print(f"Error running serializer script: {e}")
                 import traceback
+
+# Import debug utility
+try:
+    from debug_utils import debug_print
+except ImportError:
+    # Fallback if debug_utils not found - create a no-op function
+    def debug_print(*args, **kwargs):
+        pass
+
                 traceback.print_exc()
         else:
-            print(f"Warning: Serializer script not found at {serializer_script_path}")
+            debug_print(f"Warning: Serializer script not found at {serializer_script_path}")
     else:
-        print(f"Warning: Serializer directory not found at {serializer_dir}")
+        debug_print(f"Warning: Serializer directory not found at {serializer_dir}")
 

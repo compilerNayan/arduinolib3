@@ -66,13 +66,13 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
+        debug_print(f"Error reading file {file_path}: {e}")
         return False
     
     # Check if include already exists
     escaped_include = re.escape(include_path)
     if re.search(rf'#include\s+["<]{escaped_include}[">]', content):
-        print(f"⚠️  Include for {include_path} already exists in {file_path}")
+        debug_print(f"⚠️  Include for {include_path} already exists in {file_path}")
         return False
     
     # Find the last #endif
@@ -83,10 +83,10 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
     
     if dry_run:
         if last_endif_line:
-            print(f"Would add include before line {last_endif_line} (last #endif)")
+            debug_print(f"Would add include before line {last_endif_line} (last #endif)")
         else:
-            print(f"Would add include at the end of file (no #endif found)")
-        print(f"  {include_statement}")
+            debug_print(f"Would add include at the end of file (no #endif found)")
+        debug_print(f"  {include_statement}")
         return True
     
     # Add the include
@@ -102,10 +102,10 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
-        print(f"✓ Added include to {file_path}: {include_path}")
+        debug_print(f"✓ Added include to {file_path}: {include_path}")
         return True
     except Exception as e:
-        print(f"Error writing file {file_path}: {e}")
+        debug_print(f"Error writing file {file_path}: {e}")
         return False
 
 
@@ -124,7 +124,7 @@ def comment_repository_annotation(file_path: str, dry_run: bool = False) -> bool
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
+        debug_print(f"Error reading file {file_path}: {e}")
         return False
     
     lines = content.split('\n')
@@ -144,7 +144,7 @@ def comment_repository_annotation(file_path: str, dry_run: bool = False) -> bool
                 # No indentation
                 lines[i] = '/* @Repository */'
             modified = True
-            print(f"✓ Found @Repository annotation on line {i+1}, marking as processed")
+            debug_print(f"✓ Found @Repository annotation on line {i+1}, marking as processed")
             break
     
     if not modified:
@@ -153,27 +153,27 @@ def comment_repository_annotation(file_path: str, dry_run: bool = False) -> bool
             stripped = line.strip()
             # Check for processed version (/* @Repository */)
             if re.match(r'^/\*\s*@Repository\s*\*/\s*$', stripped):
-                print(f"✓ @Repository annotation already processed in {file_path} (line {i+1})")
+                debug_print(f"✓ @Repository annotation already processed in {file_path} (line {i+1})")
                 return True
         # Debug: print first few lines to see what we're looking at
-        print(f"⚠️  @Repository annotation not found in {file_path}")
-        print(f"   First 15 lines of file:")
+        debug_print(f"⚠️  @Repository annotation not found in {file_path}")
+        debug_print(f"   First 15 lines of file:")
         for j, l in enumerate(lines[:15], 1):
-            print(f"   {j:2}: {repr(l)}")
+            debug_print(f"   {j:2}: {repr(l)}")
         return False
     
     if dry_run:
-        print(f"Would mark @Repository annotation as processed in {file_path}")
+        debug_print(f"Would mark @Repository annotation as processed in {file_path}")
         return True
     
     # Write back to file
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
-        print(f"✓ Marked @Repository annotation as processed in {file_path}")
+        debug_print(f"✓ Marked @Repository annotation as processed in {file_path}")
         return True
     except Exception as e:
-        print(f"Error writing file {file_path}: {e}")
+        debug_print(f"Error writing file {file_path}: {e}")
         return False
 
 
@@ -215,14 +215,14 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     if len(result) == 4:
         class_name, entity_type, id_type, is_templated = result
         if is_templated:
-            print(f"🔍 Found templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+            debug_print(f"🔍 Found templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
         else:
-            print(f"🔍 Found non-templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+            debug_print(f"🔍 Found non-templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
     else:
         # Backward compatibility
         class_name, entity_type, id_type = result
         is_templated = True
-        print(f"🔍 Found repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+        debug_print(f"🔍 Found repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
     
     # Step 2: Create the implementation file (or check if it exists)
     repository_dir = Path(library_dir) / "src" / "repository"
@@ -234,28 +234,28 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     
     # Check if implementation file exists (either newly created or already existed)
     if not dry_run and not impl_file_path.exists():
-        print(f"⚠️  Implementation file was not created: {impl_file_path}")
+        debug_print(f"⚠️  Implementation file was not created: {impl_file_path}")
         return False
     
     # Step 4: Calculate include path (relative from source file to impl file)
     include_path = calculate_include_path(file_path, str(impl_file_path))
-    print(f"📝 Calculated include path: {include_path}")
+    debug_print(f"📝 Calculated include path: {include_path}")
     
     # Step 5: Add include to the original repository file
     include_added = add_include_to_file(file_path, include_path, dry_run)
     
     if not include_added:
-        print(f"⚠️  Failed to add include for repository {class_name}")
+        debug_print(f"⚠️  Failed to add include for repository {class_name}")
         return False
     
     # Step 6: Mark the @Repository annotation as processed
     annotation_processed = comment_repository_annotation(file_path, dry_run)
     
     if include_added and annotation_processed:
-        print(f"✅ Successfully processed repository {class_name}")
+        debug_print(f"✅ Successfully processed repository {class_name}")
         return True
     else:
-        print(f"⚠️  Repository {class_name} processed but annotation marking failed")
+        debug_print(f"⚠️  Repository {class_name} processed but annotation marking failed")
         return include_added  # Return True if at least include was added
 
 
@@ -289,7 +289,16 @@ def main():
 
 
 # Export functions for other scripts to import
-__all__ = [
+__all__
+
+# Import debug utility
+try:
+    from debug_utils import debug_print
+except ImportError:
+    # Fallback if debug_utils not found - create a no-op function
+    def debug_print(*args, **kwargs):
+        pass
+ = [
     'process_repository',
     'add_include_to_file',
     'calculate_include_path',

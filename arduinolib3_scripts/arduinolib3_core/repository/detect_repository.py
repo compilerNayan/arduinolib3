@@ -24,7 +24,16 @@ Returns: class_name, template_param1, template_param2
 
 import re
 import sys
-from typing import Optional, Tuple
+from typing import Optional
+
+# Import debug utility
+try:
+    from debug_utils import debug_print
+except ImportError:
+    # Fallback if debug_utils not found - create a no-op function
+    def debug_print(*args, **kwargs):
+        pass
+, Tuple
 
 
 def remove_comments(content: str) -> str:
@@ -102,7 +111,7 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        print(f"Error reading file {file_path}: {e}", file=sys.stderr)
+        debug_print(f"Error reading file {file_path}: {e}", file=sys.stderr)
         return None
     
     # Check if @Repository annotation is present (not processed)
@@ -132,7 +141,7 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
 def main():
     """Main function to run the script."""
     if len(sys.argv) < 2:
-        print("Usage: python detect_repository.py <source_file>", file=sys.stderr)
+        debug_print("Usage: python detect_repository.py <source_file>", file=sys.stderr)
         sys.exit(1)
     
     file_path = sys.argv[1]
@@ -141,19 +150,19 @@ def main():
     if result:
         if len(result) == 4:
             class_name, type1, type2, is_templated = result
-            print(f"Class: {class_name}")
-            print(f"Template Parameter 1: {type1}")
-            print(f"Template Parameter 2: {type2}")
-            print(f"Is Templated: {is_templated}")
+            debug_print(f"Class: {class_name}")
+            debug_print(f"Template Parameter 1: {type1}")
+            debug_print(f"Template Parameter 2: {type2}")
+            debug_print(f"Is Templated: {is_templated}")
         else:
             # Backward compatibility
             class_name, type1, type2 = result
-            print(f"Class: {class_name}")
-            print(f"Template Parameter 1: {type1}")
-            print(f"Template Parameter 2: {type2}")
+            debug_print(f"Class: {class_name}")
+            debug_print(f"Template Parameter 1: {type1}")
+            debug_print(f"Template Parameter 2: {type2}")
         sys.exit(0)
     else:
-        print("No @Repository annotation found or pattern not matched.", file=sys.stderr)
+        debug_print("No @Repository annotation found or pattern not matched.", file=sys.stderr)
         sys.exit(1)
 
 

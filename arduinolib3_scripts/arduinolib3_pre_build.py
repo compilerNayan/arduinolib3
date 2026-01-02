@@ -4,26 +4,26 @@ import os
 from pathlib import Path
 
 # Print message immediately when script is loaded
-print("=" * 60)
-print("arduinolib3 pre-build script STARTING")
-print("=" * 60)
+debug_print("=" * 60)
+debug_print("arduinolib3 pre-build script STARTING")
+debug_print("=" * 60)
 # __file__ may not be available in PlatformIO SCons context
 try:
     script_location = __file__
 except NameError:
     script_location = "unknown (running in PlatformIO SCons context)"
-print(f"Script location: {script_location}")
-print(f"Current working directory: {os.getcwd()}")
-print("=" * 60)
+debug_print(f"Script location: {script_location}")
+debug_print(f"Current working directory: {os.getcwd()}")
+debug_print("=" * 60)
 
 # Import PlatformIO environment first (if available)
 env = None
 try:
     Import("env")
-    print("✓ PlatformIO environment detected")
+    debug_print("✓ PlatformIO environment detected")
 except NameError:
     # Not running in PlatformIO environment (e.g., running from CMake)
-    print("Note: Not running in PlatformIO environment - some features may be limited")
+    debug_print("Note: Not running in PlatformIO environment - some features may be limited")
     # Create a mock env object for CMake builds
     class MockEnv:
         def get(self, key, default=None):
@@ -34,7 +34,7 @@ except NameError:
             raise KeyError(key)
     env = MockEnv()
 except Exception as e:
-    print(f"Note: Could not import PlatformIO env: {e}")
+    debug_print(f"Note: Could not import PlatformIO env: {e}")
     import traceback
     traceback.print_exc()
     class MockEnv:
@@ -76,7 +76,7 @@ def get_library_dir():
     for _ in range(15):  # Search up to 15 levels
         potential = current / "arduinolib3_scripts"
         if potential.exists() and potential.is_dir():
-            print(f"✓ Found library path by searching up directory tree: {potential}")
+            debug_print(f"✓ Found library path by searching up directory tree: {potential}")
             return potential
         parent = current.parent
         if parent == current:  # Reached filesystem root
@@ -123,7 +123,7 @@ def get_current_library_path(project_dir=None):
         project_path = Path(project_dir)
         build_deps = project_path / "build" / "_deps" / "arduinolib3-src"
         if build_deps.exists() and build_deps.is_dir():
-            print(f"✓ Found arduinolib3 library path (CMake from project): {build_deps}")
+            debug_print(f"✓ Found arduinolib3 library path (CMake from project): {build_deps}")
             return build_deps.resolve()
     
     # Try to find from current working directory's build/_deps
@@ -131,7 +131,7 @@ def get_current_library_path(project_dir=None):
     if cwd.name == "build" or "_deps" in str(cwd):
         deps_dir = cwd / "_deps" / "arduinolib3-src"
         if deps_dir.exists() and deps_dir.is_dir():
-            print(f"✓ Found arduinolib3 library path (CMake from CWD): {deps_dir}")
+            debug_print(f"✓ Found arduinolib3 library path (CMake from CWD): {deps_dir}")
             return deps_dir.resolve()
     
     # Try PlatformIO location
@@ -143,7 +143,7 @@ def get_current_library_path(project_dir=None):
                 if env_dir.is_dir():
                     for lib_dir in env_dir.iterdir():
                         if lib_dir.is_dir() and "arduinolib3" in lib_dir.name.lower():
-                            print(f"✓ Found arduinolib3 library path (PlatformIO): {lib_dir}")
+                            debug_print(f"✓ Found arduinolib3 library path (PlatformIO): {lib_dir}")
                             return lib_dir.resolve()
         
         parent = current.parent
@@ -151,7 +151,7 @@ def get_current_library_path(project_dir=None):
             break
         current = parent
     
-    print("Warning: Could not determine current library (arduinolib3) path")
+    debug_print("Warning: Could not determine current library (arduinolib3) path")
     return None
 
 
@@ -299,40 +299,40 @@ def get_project_dir():
         try:
             project_dir = env.get("PROJECT_DIR", None)
             if project_dir:
-                print(f"✓ Found PROJECT_DIR from PlatformIO env: {project_dir}")
+                debug_print(f"✓ Found PROJECT_DIR from PlatformIO env: {project_dir}")
         except (AttributeError, TypeError, KeyError) as e:
-            print(f"Note: Could not access PROJECT_DIR from env: {e}")
+            debug_print(f"Note: Could not access PROJECT_DIR from env: {e}")
     
     # If not found, try CMake environment variable
     if not project_dir:
         project_dir = os.environ.get("CMAKE_PROJECT_DIR", None)
         if project_dir:
-            print(f"✓ Found PROJECT_DIR from CMAKE_PROJECT_DIR env var: {project_dir}")
+            debug_print(f"✓ Found PROJECT_DIR from CMAKE_PROJECT_DIR env var: {project_dir}")
     
     # If still not found, try searching for platformio.ini file
     # This is important for PlatformIO when script runs from library directory
     if not project_dir:
-        print("Searching for platformio.ini file...")
+        debug_print("Searching for platformio.ini file...")
         current = Path(os.getcwd()).resolve()
-        print(f"Starting search from: {current}")
+        debug_print(f"Starting search from: {current}")
         for i in range(15):  # Search up to 15 levels
             platformio_ini = current / "platformio.ini"
             if platformio_ini.exists() and platformio_ini.is_file():
                 project_dir = str(current)
-                print(f"✓ Found project directory by searching for platformio.ini: {project_dir}")
+                debug_print(f"✓ Found project directory by searching for platformio.ini: {project_dir}")
                 break
             parent = current.parent
             if parent == current:  # Reached filesystem root
                 break
             current = parent
             if i == 14:
-                print(f"⚠️  Reached max search depth without finding platformio.ini")
+                debug_print(f"⚠️  Reached max search depth without finding platformio.ini")
     
     if project_dir:
-        print(f"\n✓ Client project directory: {project_dir}")
+        debug_print(f"\n✓ Client project directory: {project_dir}")
     else:
-        print("⚠️  Warning: Could not determine PROJECT_DIR from environment or by searching")
-        print(f"   Current working directory: {os.getcwd()}")
+        debug_print("⚠️  Warning: Could not determine PROJECT_DIR from environment or by searching")
+        debug_print(f"   Current working directory: {os.getcwd()}")
     return project_dir
 
 
@@ -351,20 +351,20 @@ library_dir = get_current_library_path(project_dir)
 if library_dir is None:
     # Fallback to parent of scripts directory
     library_dir = library_scripts_dir.parent
-    print(f"Using fallback library directory: {library_dir}")
+    debug_print(f"Using fallback library directory: {library_dir}")
 else:
-    print(f"Current library (arduinolib3) path: {library_dir}")
+    debug_print(f"Current library (arduinolib3) path: {library_dir}")
 
 # Print the library path with the requested message
-print(f"Hello cuckoo, this is the library full path: {library_dir}")
+debug_print(f"Hello cuckoo, this is the library full path: {library_dir}")
 
 # Debug: Print current working directory
-print(f"Current working directory: {os.getcwd()}")
+debug_print(f"Current working directory: {os.getcwd()}")
 
 # Get all library directories and print source files from all libraries
-print(f"\n{'=' * 60}")
-print("📚 Listing source files from all libraries...")
-print(f"{'=' * 60}")
+debug_print(f"\n{'=' * 60}")
+debug_print("📚 Listing source files from all libraries...")
+debug_print(f"{'=' * 60}")
 
 try:
     # Try to import get_client_files from arduinolib1
@@ -386,16 +386,16 @@ try:
     all_libs = get_all_library_dirs(project_dir)
     
     if all_libs and all_libs.get('root_dirs'):
-        print(f"\nFound {len(all_libs['root_dirs'])} library directory(ies):")
+        debug_print(f"\nFound {len(all_libs['root_dirs'])} library directory(ies):")
         for lib_name, lib_dir in sorted(all_libs['by_name'].items()):
-            print(f"   - {lib_name}: {lib_dir}")
+            debug_print(f"   - {lib_name}: {lib_dir}")
         
         # Collect and print source files from each library (only .h files, exclude arduinojson)
         # Also collect files from the client project
         all_header_files = []
         if HAS_GET_CLIENT_FILES:
-            print(f"\n📄 Header files (.h) in all libraries (excluding arduinojson):")
-            print("=" * 60)
+            debug_print(f"\n📄 Header files (.h) in all libraries (excluding arduinojson):")
+            debug_print("=" * 60)
             for lib_name, lib_dir in sorted(all_libs['by_name'].items()):
                 # Skip arduinojson library
                 if "arduinojson" in lib_name.lower():
@@ -404,11 +404,11 @@ try:
                 # Get only .h files
                 lib_files = get_client_files(str(lib_dir), skip_exclusions=True, file_extensions=['.h'])
                 if lib_files:
-                    print(f"\n{lib_name} ({len(lib_files)} .h file(s)):")
+                    debug_print(f"\n{lib_name} ({len(lib_files)} .h file(s)):")
                     for file_path in lib_files[:20]:  # Limit to first 20 files per library
-                        print(f"   {file_path}")
+                        debug_print(f"   {file_path}")
                     if len(lib_files) > 20:
-                        print(f"   ... and {len(lib_files) - 20} more files")
+                        debug_print(f"   ... and {len(lib_files) - 20} more files")
                     
                     # Collect all files (not just first 20) for processing
                     all_header_files.extend(lib_files)
@@ -418,30 +418,30 @@ try:
                 try:
                     client_files = get_client_files(project_dir, skip_exclusions=True, file_extensions=['.h'])
                     if client_files:
-                        print(f"\nClient Project ({len(client_files)} .h file(s)):")
+                        debug_print(f"\nClient Project ({len(client_files)} .h file(s)):")
                         for file_path in client_files[:20]:  # Limit to first 20 files
-                            print(f"   {file_path}")
+                            debug_print(f"   {file_path}")
                         if len(client_files) > 20:
-                            print(f"   ... and {len(client_files) - 20} more files")
+                            debug_print(f"   ... and {len(client_files) - 20} more files")
                         
                         # Collect all client files for processing
                         all_header_files.extend(client_files)
                 except Exception as e:
-                    print(f"⚠️  Warning: Could not get client files from {project_dir}: {e}")
+                    debug_print(f"⚠️  Warning: Could not get client files from {project_dir}: {e}")
                     import traceback
                     traceback.print_exc()
             else:
-                print("⚠️  Warning: No project directory found, skipping client files")
+                debug_print("⚠️  Warning: No project directory found, skipping client files")
             
-            print("=" * 60)
+            debug_print("=" * 60)
             
             # Process each header file with implement_repository script
             if all_header_files:
-                print(f"\n{'=' * 60}")
-                print(f"🔧 Processing {len(all_header_files)} header file(s) for repository implementation...")
-                print(f"{'=' * 60}\n")
-                print(f"Library directory: {library_dir}")
-                print(f"Project directory: {project_dir}")
+                debug_print(f"\n{'=' * 60}")
+                debug_print(f"🔧 Processing {len(all_header_files)} header file(s) for repository implementation...")
+                debug_print(f"{'=' * 60}\n")
+                debug_print(f"Library directory: {library_dir}")
+                debug_print(f"Project directory: {project_dir}")
                 
                 try:
                     # Import process_repository module
@@ -461,62 +461,71 @@ try:
                     
                     for file_path in all_header_files:
                         try:
-                            print(f"Processing file: {file_path}")
+                            debug_print(f"Processing file: {file_path}")
                             # Process file for repository implementation
                             # This will detect @Repository annotation, create impl file, and add include
                             result = process_repository(str(file_path), str(library_dir), dry_run=False)
                             if result:
-                                print(f"  ✓ Repository implementation generated for: {file_path}")
+                                debug_print(f"  ✓ Repository implementation generated for: {file_path}")
                                 implemented_count += 1
                             else:
-                                print(f"  - No repository found in: {file_path}")
+                                debug_print(f"  - No repository found in: {file_path}")
                             processed_count += 1
                         except Exception as e:
-                            print(f"⚠️  Warning: Error processing {file_path}: {e}")
+                            debug_print(f"⚠️  Warning: Error processing {file_path}: {e}")
                             import traceback
                             traceback.print_exc()
                     
-                    print(f"\n✅ Processed {processed_count} file(s), implemented {implemented_count} repository(ies)")
+                    debug_print(f"\n✅ Processed {processed_count} file(s), implemented {implemented_count} repository(ies)")
                     
                 except ImportError as e:
-                    print(f"⚠️  Warning: Could not import implement_repository: {e}")
+                    debug_print(f"⚠️  Warning: Could not import implement_repository: {e}")
                     import traceback
                     traceback.print_exc()
                 except Exception as e:
-                    print(f"⚠️  Error processing files for repository implementation: {e}")
+                    debug_print(f"⚠️  Error processing files for repository implementation: {e}")
                     import traceback
                     traceback.print_exc()
         else:
-            print("\n⚠️  Could not import get_client_files to list source files")
+            debug_print("\n⚠️  Could not import get_client_files to list source files")
     else:
-        print("\n⚠️  No library directories found")
+        debug_print("\n⚠️  No library directories found")
         
 except Exception as e:
-    print(f"\n⚠️  Error listing library files: {e}")
+    debug_print(f"\n⚠️  Error listing library files: {e}")
     import traceback
     traceback.print_exc()
 
 # Import and execute scripts
 try:
-    print(f"\n{'=' * 60}")
-    print("Importing and executing scripts...")
-    print(f"{'=' * 60}")
+    debug_print(f"\n{'=' * 60}")
+    debug_print("Importing and executing scripts...")
+    debug_print(f"{'=' * 60}")
     from arduinolib3_execute_scripts import execute_scripts
-    print(f"✓ Successfully imported execute_scripts")
-    print(f"Calling execute_scripts with project_dir={project_dir}, library_dir={library_dir}")
+    debug_print(f"✓ Successfully imported execute_scripts")
+    debug_print(f"Calling execute_scripts with project_dir={project_dir}, library_dir={library_dir}")
     execute_scripts(project_dir, library_dir)
-    print("✓ execute_scripts completed")
+    debug_print("✓ execute_scripts completed")
 except ImportError as e:
-    print(f"⚠️  Error importing execute_scripts: {e}")
+    debug_print(f"⚠️  Error importing execute_scripts: {e}")
     import traceback
     traceback.print_exc()
-    print(f"Python path: {sys.path}")
+    debug_print(f"Python path: {sys.path}")
 except Exception as e:
-    print(f"⚠️  Error executing scripts: {e}")
+    debug_print(f"⚠️  Error executing scripts: {e}")
     import traceback
+
+# Import debug utility
+try:
+    from debug_utils import debug_print
+except ImportError:
+    # Fallback if debug_utils not found - create a no-op function
+    def debug_print(*args, **kwargs):
+        pass
+
     traceback.print_exc()
 
-print("\n" + "=" * 60)
-print("arduinolib3 pre-build script completed")
-print("=" * 60)
+debug_print("\n" + "=" * 60)
+debug_print("arduinolib3 pre-build script completed")
+debug_print("=" * 60)
 

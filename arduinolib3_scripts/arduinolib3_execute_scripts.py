@@ -1,6 +1,6 @@
 """
 Script to execute client file processing.
-This script calls the arduinolib1 serializer script to process Serializable macro.
+This script calls the arduinolib1 serializer script to process @Serializable annotation.
 """
 
 import os
@@ -179,8 +179,8 @@ def execute_scripts(project_dir, library_dir):
                 print(file)
             print("=" * 60)
     
-    # FIRST: Inject primary key methods BEFORE serializer comments out the _Entity macro
-    # This ensures we can find the _Entity macro before it gets commented
+    # FIRST: Inject primary key methods BEFORE serializer marks the @Serializable annotation as processed
+    # This ensures we can find the @Serializable annotation before it gets marked as processed
     print(f"\n{'=' * 60}")
     print("🚀 Injecting primary key methods for classes with _Id_ fields (before serializer)...")
     print(f"{'=' * 60}\n")
@@ -220,7 +220,7 @@ def execute_scripts(project_dir, library_dir):
         traceback.print_exc()
     
     # THEN: Run the master serializer script (00_process_serializable_classes.py) from arduinolib1
-    # This will comment out the _Entity macro after we've already processed it
+    # This will mark the @Serializable annotation as processed after we've already processed it
     # Find the serializer directory
     try:
         # Get the directory of arduinolib1_scripts

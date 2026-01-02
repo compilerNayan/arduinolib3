@@ -274,9 +274,7 @@ except ImportError:
     # Fallback if debug_utils not found - create a no-op function
     def debug_print(*args, **kwargs):
         pass
-
-# Export functions for other scripts to import
-__all__ = [
+ = [
     'generate_impl_class',
     'implement_repository',
     'process_file',

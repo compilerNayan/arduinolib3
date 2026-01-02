@@ -12,14 +12,6 @@ import os
 from pathlib import Path
 from typing import Optional, List, Dict
 
-# Import debug utility
-try:
-    from debug_utils import debug_print
-except ImportError:
-    # Fallback if debug_utils not found - create a no-op function
-    def debug_print(*args, **kwargs):
-        pass
-
 debug_print("Executing arduinolib3_core/inject_primary_key_methods.py")
 
 # Add parent directory to path for imports

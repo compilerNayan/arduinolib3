@@ -234,7 +234,14 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     result = extract_id_fields_from_file(file_path, serializable_macro)
     
     if not result or not result.get('has_serializable'):
-        print(f"File {file_path} does not have {serializable_macro} macro, skipping")
+        # Determine annotation name for display
+        if serializable_macro == "_Entity":
+            annotation_name = "@Entity"
+        elif serializable_macro == "Serializable":
+            annotation_name = "@Serializable"
+        else:
+            annotation_name = "@Serializable"
+        print(f"File {file_path} does not have {annotation_name} annotation, skipping")
         return False
     
     id_fields = result.get('id_fields', [])
@@ -270,7 +277,7 @@ def main():
     parser.add_argument(
         "--macro",
         default="_Entity",
-        help="Name of the Serializable macro to search for (default: _Entity)"
+        help="Name of the macro (Serializable -> @Serializable, _Entity -> @Entity)"
     )
     parser.add_argument(
         "--dry-run",

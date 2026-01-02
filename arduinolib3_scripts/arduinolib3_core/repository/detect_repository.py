@@ -24,16 +24,23 @@ Returns: class_name, template_param1, template_param2
 
 import re
 import sys
-from typing import Optional
+from typing import Optional, Tuple
 
 # Import debug utility
+# Add parent directories to path for debug_utils
+import os
+script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(script_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+scripts_dir = os.path.dirname(grandparent_dir)
+sys.path.insert(0, scripts_dir)
+
 try:
     from debug_utils import debug_print
 except ImportError:
     # Fallback if debug_utils not found - create a no-op function
     def debug_print(*args, **kwargs):
         pass
-, Tuple
 
 
 def remove_comments(content: str) -> str:

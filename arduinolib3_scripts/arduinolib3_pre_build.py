@@ -3,6 +3,36 @@ import sys
 import os
 from pathlib import Path
 
+# Import debug utility
+# Add current directory to path to import debug_utils
+try:
+    if '__file__' in globals():
+        script_dir = Path(__file__).parent
+    else:
+        # In PlatformIO SCons context, search for arduinolib3_scripts directory
+        script_dir = Path(os.getcwd())
+        # Try to find arduinolib3_scripts directory
+        for _ in range(10):
+            potential = script_dir / "arduinolib3_scripts"
+            if potential.exists() and potential.is_dir():
+                script_dir = potential
+                break
+            parent = script_dir.parent
+            if parent == script_dir:
+                break
+            script_dir = parent
+    sys.path.insert(0, str(script_dir))
+except Exception:
+    # If anything fails, just use current directory
+    sys.path.insert(0, os.getcwd())
+
+try:
+    from debug_utils import debug_print
+except ImportError:
+    # Fallback if debug_utils not found - create a no-op function
+    def debug_print(*args, **kwargs):
+        pass
+
 # Print message immediately when script is loaded
 debug_print("=" * 60)
 debug_print("arduinolib3 pre-build script STARTING")

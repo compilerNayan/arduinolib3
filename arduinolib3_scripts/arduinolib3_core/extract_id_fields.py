@@ -444,9 +444,6 @@ def main():
         return 1
 
 
-# Export functions for other scripts to import
-__all__
-
 # Import debug utility
 try:
     from debug_utils import debug_print

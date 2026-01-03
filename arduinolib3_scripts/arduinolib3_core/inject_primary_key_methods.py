@@ -12,29 +12,13 @@ import os
 from pathlib import Path
 from typing import Optional, List, Dict
 
+# print("Executing arduinolib3_core/inject_primary_key_methods.py")
+
 # Add parent directory to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_scripts_dir = os.path.dirname(script_dir)
 sys.path.insert(0, parent_scripts_dir)
 sys.path.insert(0, script_dir)
-
-# Import logging utility
-try:
-    # Try to find and import pre_build_logger
-    for parent in [Path(script_dir)] + list(Path(script_dir).parents)[:10]:
-        logger_path = parent / "arduinolib0" / "arduinolib0_scripts" / "pre_build_logger.py"
-        if logger_path.exists():
-            sys.path.insert(0, str(logger_path.parent))
-            from pre_build_logger import log_annotation_processed
-            break
-    else:
-        # Fallback: create minimal logger functions
-        def log_annotation_processed(annotation, file_path, details=None):
-            pass
-except Exception:
-    # Fallback: create minimal logger functions
-    def log_annotation_processed(annotation, file_path, details=None):
-        pass
 
 # Import extract_id_fields
 try:
@@ -263,6 +247,7 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     id_fields = result.get('id_fields', [])
     
     if not id_fields:
+        # print(f"No @Id fields found in {result.get('class_name')}, skipping")
         return False
     
     # Use the first @Id field as the primary key
@@ -272,13 +257,10 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     field_name = primary_key_field['name']
     class_name = result['class_name']
     
+    # print(f"Found primary key field in {class_name}: {field_type} {field_name}")
+    
     # Inject the methods
-    success = inject_primary_key_methods(file_path, class_name, field_type, field_name, dry_run)
-    
-    if success and not dry_run:
-        log_annotation_processed("@Id", file_path, f"field {field_name} in class {class_name}")
-    
-    return success
+    return inject_primary_key_methods(file_path, class_name, field_type, field_name, dry_run)
 
 
 def main():

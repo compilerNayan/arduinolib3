@@ -13,7 +13,7 @@
     "url": "https://github.com/compilerNayan/arduinolib3.git"
   },
   "dependencies": {
-    "arduinolib1": "https://github.com/compilerNayan/arduinolib1.git"
+    "arduinolib1": "https://github.com/compilerNayan/arduinolib1.git#dev"
   },
   "license": "MIT",
   "homepage": "",

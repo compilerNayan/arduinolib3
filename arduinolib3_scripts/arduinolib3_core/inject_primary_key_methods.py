@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Optional, List, Dict
 
-print("Executing arduinolib3_core/inject_primary_key_methods.py")
+# print("Executing arduinolib3_core/inject_primary_key_methods.py")
 
 # Add parent directory to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -25,7 +25,7 @@ try:
     from arduinolib3_core.extract_id_fields import extract_id_fields_from_file, extract_id_fields
     HAS_EXTRACT_ID = True
 except ImportError as e:
-    print(f"Warning: Could not import extract_id_fields: {e}")
+    # print(f"Warning: Could not import extract_id_fields: {e}")
     HAS_EXTRACT_ID = False
 
 
@@ -44,7 +44,7 @@ def find_class_boundaries(file_path: str, class_name: str) -> Optional[tuple]:
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
     except Exception as e:
-        print(f"Error reading file: {e}")
+        # print(f"Error reading file: {e}")
         return None
     
     class_start = None
@@ -131,13 +131,13 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
     except Exception as e:
-        print(f"Error reading file: {e}")
+        # print(f"Error reading file: {e}")
         return False
     
     # Find class boundaries
     boundaries = find_class_boundaries(file_path, class_name)
     if not boundaries:
-        print(f"Error: Could not find class boundaries for {class_name}")
+        # print(f"Error: Could not find class boundaries for {class_name}")
         return False
     
     start_line, end_line = boundaries
@@ -151,7 +151,7 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     class_content = ''.join(class_lines)
     
     if 'GetPrimaryKey()' in class_content or 'GetTableName()' in class_content:
-        print(f"⚠️  Primary key methods already exist in {class_name}, skipping injection")
+        # print(f"⚠️  Primary key methods already exist in {class_name}, skipping injection")
         return False
     
     # Generate the methods code
@@ -174,10 +174,10 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     methods_code = '\n'.join(indented_methods)
     
     if dry_run:
-        print(f"Would inject the following methods into {class_name} in {file_path}:")
-        print("=" * 60)
-        print(methods_code)
-        print("=" * 60)
+        # print(f"Would inject the following methods into {class_name} in {file_path}:")
+        # print("=" * 60)
+        # print(methods_code)
+        # print("=" * 60)
         return True
     
     # Insert methods before the closing brace
@@ -207,10 +207,10 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     try:
         with open(file_path, 'w', encoding='utf-8') as file:
             file.writelines(lines)
-        print(f"✓ Injected GetPrimaryKey() methods into {class_name} in {file_path}")
+        # print(f"✓ Injected GetPrimaryKey() methods into {class_name} in {file_path}")
         return True
     except Exception as e:
-        print(f"Error writing file: {e}")
+        # print(f"Error writing file: {e}")
         return False
 
 
@@ -227,7 +227,7 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
         True if successful, False otherwise
     """
     if not HAS_EXTRACT_ID:
-        print("Error: extract_id_fields module not available")
+        # print("Error: extract_id_fields module not available")
         return False
     
     # Extract @Id fields
@@ -241,13 +241,13 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
             annotation_name = "@Serializable"
         else:
             annotation_name = "@Serializable"
-        print(f"File {file_path} does not have {annotation_name} annotation, skipping")
+        # print(f"File {file_path} does not have {annotation_name} annotation, skipping")
         return False
     
     id_fields = result.get('id_fields', [])
     
     if not id_fields:
-        print(f"No @Id fields found in {result.get('class_name')}, skipping")
+        # print(f"No @Id fields found in {result.get('class_name')}, skipping")
         return False
     
     # Use the first @Id field as the primary key
@@ -257,7 +257,7 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     field_name = primary_key_field['name']
     class_name = result['class_name']
     
-    print(f"Found primary key field in {class_name}: {field_type} {field_name}")
+    # print(f"Found primary key field in {class_name}: {field_type} {field_name}")
     
     # Inject the methods
     return inject_primary_key_methods(file_path, class_name, field_type, field_name, dry_run)

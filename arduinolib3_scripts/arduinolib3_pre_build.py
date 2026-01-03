@@ -3,27 +3,12 @@ import sys
 import os
 from pathlib import Path
 
-# Print message immediately when script is loaded
-# print("=" * 60)
-# print("arduinolib3 pre-build script STARTING")
-# print("=" * 60)
-# __file__ may not be available in PlatformIO SCons context
-try:
-    script_location = __file__
-except NameError:
-    script_location = "unknown (running in PlatformIO SCons context)"
-# print(f"Script location: {script_location}")
-# print(f"Current working directory: {os.getcwd()}")
-# print("=" * 60)
-
 # Import PlatformIO environment first (if available)
 env = None
 try:
     Import("env")
-    # print("✓ PlatformIO environment detected")
 except NameError:
     # Not running in PlatformIO environment (e.g., running from CMake)
-    # print("Note: Not running in PlatformIO environment - some features may be limited")
     # Create a mock env object for CMake builds
     class MockEnv:
         def get(self, key, default=None):
@@ -34,7 +19,6 @@ except NameError:
             raise KeyError(key)
     env = MockEnv()
 except Exception as e:
-    # print(f"Note: Could not import PlatformIO env: {e}")
     import traceback
     traceback.print_exc()
     class MockEnv:
@@ -45,6 +29,32 @@ except Exception as e:
         def __getitem__(self, key):
             raise KeyError(key)
     env = MockEnv()
+
+# Import logging utility
+try:
+    # Try to find and import pre_build_logger
+    script_dir = Path(__file__).parent if '__file__' in globals() else Path(os.getcwd())
+    # Search for arduinolib0_scripts
+    for parent in [script_dir] + list(script_dir.parents)[:10]:
+        logger_path = parent / "arduinolib0" / "arduinolib0_scripts" / "pre_build_logger.py"
+        if logger_path.exists():
+            sys.path.insert(0, str(logger_path.parent))
+            from pre_build_logger import print_banner, log_processing_start
+            print_banner()
+            log_processing_start("Repository & Entity Processing")
+            break
+    else:
+        # Fallback: create minimal logger functions
+        def print_banner():
+            pass
+        def log_processing_start(name):
+            pass
+except Exception:
+    # Fallback: create minimal logger functions
+    def print_banner():
+        pass
+    def log_processing_start(name):
+        pass
 
 
 def get_library_dir():

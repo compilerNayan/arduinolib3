@@ -20,6 +20,24 @@ from typing import Optional
 script_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, str(script_dir))
 
+# Import logging utility
+try:
+    # Try to find and import pre_build_logger
+    for parent in [Path(script_dir)] + list(Path(script_dir).parents)[:10]:
+        logger_path = parent / "arduinolib0" / "arduinolib0_scripts" / "pre_build_logger.py"
+        if logger_path.exists():
+            sys.path.insert(0, str(logger_path.parent))
+            from pre_build_logger import log_annotation_processed
+            break
+    else:
+        # Fallback: create minimal logger functions
+        def log_annotation_processed(annotation, file_path, details=None):
+            pass
+except Exception:
+    # Fallback: create minimal logger functions
+    def log_annotation_processed(annotation, file_path, details=None):
+        pass
+
 from detect_repository import detect_repository
 from implement_repository import implement_repository, generate_impl_class
 
@@ -251,11 +269,10 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     # Step 6: Mark the @Repository annotation as processed
     annotation_processed = comment_repository_annotation(file_path, dry_run)
     
-    if include_added and annotation_processed:
-        # print(f"✅ Successfully processed repository {class_name}")
+    if include_added and annotation_processed and not dry_run:
+        log_annotation_processed("@Repository", file_path, f"class {class_name}")
         return True
     else:
-        # print(f"⚠️  Repository {class_name} processed but annotation marking failed")
         return include_added  # Return True if at least include was added
 
 

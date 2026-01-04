@@ -293,7 +293,7 @@ def get_project_dir():
     Returns:
         str: Path to the project directory, or None if not found
     """
-    # Try PlatformIO environment first (simpler approach like arduinolib2)
+    # Try PlatformIO environment first (simpler approach like springbootplusplus-web)
     project_dir = None
     if env:
         try:

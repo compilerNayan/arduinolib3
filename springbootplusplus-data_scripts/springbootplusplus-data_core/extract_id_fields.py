@@ -28,7 +28,7 @@ import os
 from pathlib import Path
 from typing import List, Dict, Optional
 
-# print("Executing arduinolib3_core/extract_id_fields.py")
+# print("Executing springbootplusplus_data_core/extract_id_fields.py")
 
 # Add parent directory to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))

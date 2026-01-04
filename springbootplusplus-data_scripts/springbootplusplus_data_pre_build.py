@@ -5,7 +5,7 @@ from pathlib import Path
 
 # Print message immediately when script is loaded
 # print("=" * 60)
-# print("arduinolib3 pre-build script STARTING")
+# print("springbootplusplus-data pre-build script STARTING")
 # print("=" * 60)
 # __file__ may not be available in PlatformIO SCons context
 try:
@@ -49,10 +49,10 @@ except Exception as e:
 
 def get_library_dir():
     """
-    Find the arduinolib3_scripts directory by searching up the directory tree.
+    Find the springbootplusplus-data_scripts directory by searching up the directory tree.
     
     Returns:
-        Path: Path to the arduinolib3_scripts directory
+        Path: Path to the springbootplusplus-data_scripts directory
         
     Raises:
         ImportError: If the directory cannot be found
@@ -74,7 +74,7 @@ def get_library_dir():
     
     # Search up the directory tree
     for _ in range(15):  # Search up to 15 levels
-        potential = current / "arduinolib3_scripts"
+        potential = current / "springbootplusplus-data_scripts"
         if potential.exists() and potential.is_dir():
             # print(f"✓ Found library path by searching up directory tree: {potential}")
             return potential
@@ -82,15 +82,15 @@ def get_library_dir():
         if parent == current:  # Reached filesystem root
             break
         current = parent
-    raise ImportError("Could not find arduinolib3_scripts directory")
+    raise ImportError("Could not find springbootplusplus-data_scripts directory")
 
 
 def get_current_library_path(project_dir=None):
     """
-    Get the full path of the current library (arduinolib3) when included in a client project.
+    Get the full path of the current library (springbootplusplus-data) when included in a client project.
     
     This function finds the library by:
-    1. Checking if we're in a CMake FetchContent location (build/_deps/arduinolib3-src)
+    1. Checking if we're in a CMake FetchContent location (build/_deps/springbootplusplus-data-src)
     2. Checking if we're in a PlatformIO location (.pio/libdeps/)
     3. Using get_library_dir() and getting its parent
     
@@ -98,7 +98,7 @@ def get_current_library_path(project_dir=None):
         project_dir: Optional project directory. If None, tries to get from environment.
     
     Returns:
-        Path: Full path to the arduinolib3 library root directory, or None if not found
+        Path: Full path to the springbootplusplus-data library root directory, or None if not found
     """
     # Get project directory if not provided
     if project_dir is None:
@@ -110,7 +110,7 @@ def get_current_library_path(project_dir=None):
         library_root = library_scripts_dir.parent
         
         # If we're in a CMake FetchContent location, return the resolved path
-        if "arduinolib3-src" in str(library_root) or "_deps" in str(library_root):
+        if "springbootplusplus-data-src" in str(library_root) or "_deps" in str(library_root):
             return library_root.resolve()
         
         # Otherwise, return the parent of scripts directory
@@ -121,17 +121,17 @@ def get_current_library_path(project_dir=None):
     # Try to find from project directory's build/_deps
     if project_dir:
         project_path = Path(project_dir)
-        build_deps = project_path / "build" / "_deps" / "arduinolib3-src"
+        build_deps = project_path / "build" / "_deps" / "springbootplusplus-data-src"
         if build_deps.exists() and build_deps.is_dir():
-            # print(f"✓ Found arduinolib3 library path (CMake from project): {build_deps}")
+            # print(f"✓ Found springbootplusplus-data library path (CMake from project): {build_deps}")
             return build_deps.resolve()
     
     # Try to find from current working directory's build/_deps
     cwd = Path(os.getcwd())
     if cwd.name == "build" or "_deps" in str(cwd):
-        deps_dir = cwd / "_deps" / "arduinolib3-src"
+        deps_dir = cwd / "_deps" / "springbootplusplus-data-src"
         if deps_dir.exists() and deps_dir.is_dir():
-            # print(f"✓ Found arduinolib3 library path (CMake from CWD): {deps_dir}")
+            # print(f"✓ Found springbootplusplus-data library path (CMake from CWD): {deps_dir}")
             return deps_dir.resolve()
     
     # Try PlatformIO location
@@ -142,8 +142,8 @@ def get_current_library_path(project_dir=None):
             for env_dir in pio_path.iterdir():
                 if env_dir.is_dir():
                     for lib_dir in env_dir.iterdir():
-                        if lib_dir.is_dir() and "arduinolib3" in lib_dir.name.lower():
-                            # print(f"✓ Found arduinolib3 library path (PlatformIO): {lib_dir}")
+                        if lib_dir.is_dir() and "springbootplusplus-data" in lib_dir.name.lower():
+                            # print(f"✓ Found springbootplusplus-data library path (PlatformIO): {lib_dir}")
                             return lib_dir.resolve()
         
         parent = current.parent
@@ -151,7 +151,7 @@ def get_current_library_path(project_dir=None):
             break
         current = parent
     
-    # print("Warning: Could not determine current library (arduinolib3) path")
+    # print("Warning: Could not determine current library (springbootplusplus-data) path")
     return None
 
 
@@ -208,14 +208,14 @@ def get_all_library_dirs(project_dir=None):
                     if scripts_dir.exists() and scripts_dir.is_dir():
                         scripts_dirs.append(scripts_dir.resolve())
     
-    # Add library directory (parent of arduinolib3_scripts)
+    # Add library directory (parent of springbootplusplus-data_scripts)
     try:
         library_scripts_dir = get_library_dir()
         library_dir = library_scripts_dir.parent
         search_paths.append(library_dir)
         
         # If we're in a CMake build, check sibling directories in _deps
-        if "arduinolib3-src" in str(library_dir) or "_deps" in str(library_dir):
+        if "springbootplusplus-data-src" in str(library_dir) or "_deps" in str(library_dir):
             parent_deps = library_dir.parent
             if parent_deps.exists() and parent_deps.name == "_deps":
                 # Find all library directories in _deps
@@ -352,14 +352,14 @@ os.environ['SERIALIZABLE_MACRO'] = '_Entity'
 # Get project directory
 project_dir = get_project_dir()
 
-# Get current library root directory (full path of arduinolib3 when included in client)
+# Get current library root directory (full path of springbootplusplus-data when included in client)
 library_dir = get_current_library_path(project_dir)
 if library_dir is None:
     # Fallback to parent of scripts directory
     library_dir = library_scripts_dir.parent
     # print(f"Using fallback library directory: {library_dir}")
 else:
-    # print(f"Current library (arduinolib3) path: {library_dir}")
+    # print(f"Current library (springbootplusplus-data) path: {library_dir}")
     pass
 
 # Print the library path with the requested message
@@ -376,7 +376,7 @@ else:
 try:
     # Try to import get_client_files from serializationlib
     # First, find serializationlib_scripts
-    from arduinolib3_execute_scripts import find_library_scripts
+    from springbootplusplus_data_execute_scripts import find_library_scripts
     serializationlib_scripts_dir = find_library_scripts("serializationlib_scripts")
     
     if serializationlib_scripts_dir:
@@ -457,13 +457,13 @@ try:
                     # __file__ may not be available in PlatformIO SCons context
                     try:
                         current_file = Path(__file__).resolve()
-                        arduinolib3_scripts_dir = current_file.parent
+                        springbootplusplus_data_scripts_dir = current_file.parent
                     except NameError:
                         # Fallback: use library_scripts_dir that we already found
-                        arduinolib3_scripts_dir = library_scripts_dir
-                    sys.path.insert(0, str(arduinolib3_scripts_dir))
+                        springbootplusplus_data_scripts_dir = library_scripts_dir
+                    sys.path.insert(0, str(springbootplusplus_data_scripts_dir))
                     
-                    from arduinolib3_core.repository.process_repository import process_repository
+                    from springbootplusplus_data_core.repository.process_repository import process_repository
                     
                     processed_count = 0
                     implemented_count = 0
@@ -513,7 +513,7 @@ try:
     # print(f"\n{'=' * 60}")
     # print("Importing and executing scripts...")
     # print(f"{'=' * 60}")
-    from arduinolib3_execute_scripts import execute_scripts
+    from springbootplusplus_data_execute_scripts import execute_scripts
     # print(f"✓ Successfully imported execute_scripts")
     # print(f"Calling execute_scripts with project_dir={project_dir}, library_dir={library_dir}")
     execute_scripts(project_dir, library_dir)
@@ -529,6 +529,6 @@ except Exception as e:
     traceback.print_exc()
 
 # print("\n" + "=" * 60)
-# print("arduinolib3 pre-build script completed")
+# print("springbootplusplus-data pre-build script completed")
 # print("=" * 60)
 

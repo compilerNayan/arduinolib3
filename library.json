@@ -1,5 +1,5 @@
 {
-  "name": "arduinolib3",
+  "name": "springbootplusplus-data",
   "version": "1.0.0",
   "description": "A header-only PlatformIO library that depends on serializationlib",
   "keywords": "arduino, utility",
@@ -20,7 +20,7 @@
   "frameworks": "arduino",
   "platforms": "*",
   "build": {
-    "extraScript": "arduinolib3_scripts/arduinolib3_pre_build.py"
+    "extraScript": "springbootplusplus-data_scripts/springbootplusplus_data_pre_build.py"
   }
 }
 

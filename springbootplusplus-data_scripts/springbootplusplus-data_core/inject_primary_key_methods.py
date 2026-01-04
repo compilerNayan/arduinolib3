@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Optional, List, Dict
 
-# print("Executing arduinolib3_core/inject_primary_key_methods.py")
+# print("Executing springbootplusplus_data_core/inject_primary_key_methods.py")
 
 # Add parent directory to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +22,7 @@ sys.path.insert(0, script_dir)
 
 # Import extract_id_fields
 try:
-    from arduinolib3_core.extract_id_fields import extract_id_fields_from_file, extract_id_fields
+    from springbootplusplus_data_core.extract_id_fields import extract_id_fields_from_file, extract_id_fields
     HAS_EXTRACT_ID = True
 except ImportError as e:
     # print(f"Warning: Could not import extract_id_fields: {e}")

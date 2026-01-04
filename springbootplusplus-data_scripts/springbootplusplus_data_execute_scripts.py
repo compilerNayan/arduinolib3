@@ -59,14 +59,14 @@ def find_library_scripts(scripts_dir_name):
             # print(f"✓ Found {scripts_dir_name} (CMake from project): {build_deps}")
             return build_deps
     
-    # Add library directory (parent of arduinolib3_scripts)
+    # Add library directory (parent of springbootplusplus-data_scripts)
     current_file = Path(__file__).resolve()
     library_scripts_dir = current_file.parent
     library_dir = library_scripts_dir.parent
     search_paths.append(library_dir)
     
-    # If we're in a CMake build, check sibling directory ({lib_src_name} next to arduinolib3-src)
-    if "arduinolib3-src" in str(library_dir) or "_deps" in str(library_dir):
+    # If we're in a CMake build, check sibling directory ({lib_src_name} next to springbootplusplus-data-src)
+    if "springbootplusplus-data-src" in str(library_dir) or "_deps" in str(library_dir):
         # We're in a CMake FetchContent location, check sibling
         parent_deps = library_dir.parent
         if parent_deps.exists() and parent_deps.name == "_deps":
@@ -186,12 +186,12 @@ def execute_scripts(project_dir, library_dir):
     # print(f"{'=' * 60}\n")
     
     try:
-        # Add arduinolib3_scripts to path
+        # Add springbootplusplus-data_scripts to path
         current_file = Path(__file__).resolve()
-        arduinolib3_scripts_dir = current_file.parent
-        sys.path.insert(0, str(arduinolib3_scripts_dir))
+        springbootplusplus_data_scripts_dir = current_file.parent
+        sys.path.insert(0, str(springbootplusplus_data_scripts_dir))
         
-        from arduinolib3_core.inject_primary_key_methods import process_file
+        from springbootplusplus_data_core.inject_primary_key_methods import process_file
         
         # Get all client files to process
         if HAS_GET_CLIENT_FILES and project_dir:

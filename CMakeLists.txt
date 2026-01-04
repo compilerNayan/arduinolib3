@@ -9,14 +9,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # This ensures dependencies are available when the pre-build script runs
 include(FetchContent)
 
-# Fetch arduinolib1 dependency
+# Fetch serializationlib dependency
 FetchContent_Declare(
-    arduinolib1
+    serializationlib
     GIT_REPOSITORY https://github.com/compilerNayan/arduinolib1.git
     GIT_TAG        dev  # Use the main branch
 )
 
-FetchContent_MakeAvailable(arduinolib1)
+FetchContent_MakeAvailable(serializationlib)
 
 # Run pre-build script during configuration (runs even if client creates own library)
 # This will run whenever this CMakeLists.txt is processed
@@ -65,16 +65,16 @@ target_include_directories(arduinolib3 INTERFACE
     $<INSTALL_INTERFACE:include>
 )
 
-# Add arduinolib1 include directory
+# Add serializationlib include directory
 # Use BUILD_INTERFACE generator expression to properly handle FetchContent paths
-FetchContent_GetProperties(arduinolib1)
-if(arduinolib1_SOURCE_DIR)
+FetchContent_GetProperties(serializationlib)
+if(serializationlib_SOURCE_DIR)
     target_include_directories(arduinolib3 INTERFACE
-        $<BUILD_INTERFACE:${arduinolib1_SOURCE_DIR}/src>
+        $<BUILD_INTERFACE:${serializationlib_SOURCE_DIR}/src>
     )
-    # Link to arduinolib1 if it's available as a target
-    if(TARGET arduinolib1)
-        target_link_libraries(arduinolib3 INTERFACE arduinolib1)
+    # Link to serializationlib if it's available as a target
+    if(TARGET serializationlib)
+        target_link_libraries(arduinolib3 INTERFACE serializationlib)
     endif()
 endif()
 

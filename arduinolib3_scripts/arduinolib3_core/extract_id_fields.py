@@ -35,11 +35,11 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_scripts_dir = os.path.dirname(script_dir)
 sys.path.insert(0, parent_scripts_dir)
 
-# Try to import from arduinolib1 scripts
+# Try to import from serializationlib scripts
 try:
-    # Find arduinolib1_scripts directory
-    def find_arduinolib1_scripts():
-        """Find arduinolib1_scripts directory."""
+    # Find serializationlib_scripts directory
+    def find_serializationlib_scripts():
+        """Find serializationlib_scripts directory."""
         search_paths = []
         
         # Add current working directory
@@ -50,23 +50,23 @@ try:
         if project_dir:
             search_paths.append(Path(project_dir))
             
-            # Check build/_deps/arduinolib1-src/arduinolib1_scripts
-            build_deps = Path(project_dir) / "build" / "_deps" / "arduinolib1-src" / "arduinolib1_scripts"
+            # Check build/_deps/serializationlib-src/serializationlib_scripts
+            build_deps = Path(project_dir) / "build" / "_deps" / "serializationlib-src" / "serializationlib_scripts"
             if build_deps.exists() and build_deps.is_dir():
                 return build_deps
         
         # Check current file's parent directories
         current = Path(script_dir).resolve()
         for _ in range(10):
-            # Check in build/_deps/arduinolib1-src/
-            deps_path = current / "build" / "_deps" / "arduinolib1-src" / "arduinolib1_scripts"
+            # Check in build/_deps/serializationlib-src/
+            deps_path = current / "build" / "_deps" / "serializationlib-src" / "serializationlib_scripts"
             if deps_path.exists() and deps_path.is_dir():
                 return deps_path
             
             # Check sibling directories
             parent = current.parent
             if parent.name == "_deps":
-                lib_src = parent / "arduinolib1-src" / "arduinolib1_scripts"
+                lib_src = parent / "serializationlib-src" / "serializationlib_scripts"
                 if lib_src.exists() and lib_src.is_dir():
                     return lib_src
             
@@ -76,25 +76,25 @@ try:
         
         return None
     
-    arduinolib1_scripts_dir = find_arduinolib1_scripts()
-    if arduinolib1_scripts_dir:
-        sys.path.insert(0, str(arduinolib1_scripts_dir))
-        sys.path.insert(0, str(arduinolib1_scripts_dir / "arduinolib1_serializer"))
+    serializationlib_scripts_dir = find_serializationlib_scripts()
+    if serializationlib_scripts_dir:
+        sys.path.insert(0, str(serializationlib_scripts_dir))
+        sys.path.insert(0, str(serializationlib_scripts_dir / "serializationlib_serializer"))
         
         try:
             import S1_check_dto_macro
             import S2_extract_dto_fields
             import S6_discover_validation_macros
-            HAS_ARDUINOLIB1 = True
+            HAS_SERIALIZATIONLIB = True
         except ImportError as e:
-            # print(f"Warning: Could not import arduinolib1 modules: {e}")
-            HAS_ARDUINOLIB1 = False
+            # print(f"Warning: Could not import serializationlib modules: {e}")
+            HAS_SERIALIZATIONLIB = False
     else:
-        # print("Warning: Could not find arduinolib1_scripts directory")
-        HAS_ARDUINOLIB1 = False
+        # print("Warning: Could not find serializationlib_scripts directory")
+        HAS_SERIALIZATIONLIB = False
 except Exception as e:
-    # print(f"Warning: Error setting up arduinolib1 imports: {e}")
-    HAS_ARDUINOLIB1 = False
+    # print(f"Warning: Error setting up serializationlib imports: {e}")
+    HAS_SERIALIZATIONLIB = False
 
 
 def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
@@ -108,7 +108,7 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
     Returns:
         Dictionary with 'class_name', 'has_dto', 'line_number' if found, None otherwise
     """
-    if HAS_ARDUINOLIB1:
+    if HAS_SERIALIZATIONLIB:
         return S1_check_dto_macro.check_dto_macro(file_path, serializable_macro)
     else:
         # Fallback implementation
@@ -189,7 +189,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         return []
     
     # Find class boundaries
-    if HAS_ARDUINOLIB1:
+    if HAS_SERIALIZATIONLIB:
         boundaries = S2_extract_dto_fields.find_class_boundaries(file_path, class_name)
     else:
         # Fallback implementation
@@ -225,7 +225,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
     
     # Discover validation macros if not provided
     if validation_macros is None:
-        if HAS_ARDUINOLIB1:
+        if HAS_SERIALIZATIONLIB:
             try:
                 validation_macros = S6_discover_validation_macros.find_validation_macro_definitions(None)
             except:

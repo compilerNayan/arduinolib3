@@ -1,6 +1,6 @@
 """
 Script to execute client file processing.
-This script calls the arduinolib1 serializer script to process Serializable macro.
+This script calls the serializationlib serializer script to process Serializable macro.
 """
 
 import os
@@ -14,13 +14,13 @@ def find_library_scripts(scripts_dir_name):
     Find a library scripts directory by searching from current directory and project directory.
     
     Args:
-        scripts_dir_name: Name of the scripts directory to find (e.g., "arduinolib1_scripts")
+        scripts_dir_name: Name of the scripts directory to find (e.g., "serializationlib_scripts")
     
     Returns:
         Path: Path to the scripts directory, or None if not found
     """
     # Derive library source directory name from scripts directory name
-    # e.g., "arduinolib1_scripts" -> "arduinolib1-src"
+    # e.g., "serializationlib_scripts" -> "serializationlib-src"
     if scripts_dir_name.endswith("_scripts"):
         lib_name = scripts_dir_name[:-8]  # Remove "_scripts" suffix
         lib_src_name = f"{lib_name}-src"
@@ -125,7 +125,7 @@ def find_library_scripts(scripts_dir_name):
 def execute_scripts(project_dir, library_dir):
     """
     Execute the scripts to process client files.
-    Calls the arduinolib1 serializer script (00_process_serializable_classes.py) directly
+    Calls the serializationlib serializer script (00_process_serializable_classes.py) directly
     and then injects primary key methods.
     
     Args:
@@ -143,22 +143,22 @@ def execute_scripts(project_dir, library_dir):
     serializable_macro = os.environ.get("SERIALIZABLE_MACRO", "_Entity")
     globals()['serializable_macro'] = serializable_macro
     
-    # Find arduinolib1_scripts directory
-    arduinolib1_scripts_dir = find_library_scripts("arduinolib1_scripts")
+    # Find serializationlib_scripts directory
+    serializationlib_scripts_dir = find_library_scripts("serializationlib_scripts")
     
-    if not arduinolib1_scripts_dir:
-        # print("Warning: Could not find arduinolib1_scripts directory. Skipping Serializable processing.")
+    if not serializationlib_scripts_dir:
+        # print("Warning: Could not find serializationlib_scripts directory. Skipping Serializable processing.")
         return
     
-    # Add arduinolib1_scripts to Python path
-    sys.path.insert(0, str(arduinolib1_scripts_dir))
+    # Add serializationlib_scripts to Python path
+    sys.path.insert(0, str(serializationlib_scripts_dir))
     
-    # Try to import get_client_files from arduinolib1
+    # Try to import get_client_files from serializationlib
     try:
-        from arduinolib1_core.arduinolib1_get_client_files import get_client_files
+        from serializationlib_core.serializationlib_get_client_files import get_client_files
         HAS_GET_CLIENT_FILES = True
     except ImportError:
-        # print("Warning: Could not import get_client_files from arduinolib1")
+        # print("Warning: Could not import get_client_files from serializationlib")
         HAS_GET_CLIENT_FILES = False
     
     # List client files if available
@@ -224,14 +224,14 @@ def execute_scripts(project_dir, library_dir):
         import traceback
         traceback.print_exc()
     
-    # THEN: Run the master serializer script (00_process_serializable_classes.py) from arduinolib1
+    # THEN: Run the master serializer script (00_process_serializable_classes.py) from serializationlib
     # This will mark the @Entity annotation as processed after we've already processed it
     # Find the serializer directory
     try:
-        # Get the directory of arduinolib1_scripts
-        arduinolib1_scripts_path = Path(arduinolib1_scripts_dir)
-        # serializer is in arduinolib1_serializer/
-        serializer_dir = arduinolib1_scripts_path / 'arduinolib1_serializer'
+        # Get the directory of serializationlib_scripts
+        serializationlib_scripts_path = Path(serializationlib_scripts_dir)
+        # serializer is in serializationlib_serializer/
+        serializer_dir = serializationlib_scripts_path / 'serializationlib_serializer'
     except Exception as e:
         # print(f"Error finding serializer directory: {e}")
         serializer_dir = None
@@ -276,7 +276,7 @@ def execute_scripts(project_dir, library_dir):
                 elif hasattr(serializer_module, 'process_all_serializable_classes'):
                     serializer_module.process_all_serializable_classes(dry_run=False)
                 
-                # print(f"\n✅ Successfully executed arduinolib1 serializer")
+                # print(f"\n✅ Successfully executed serializationlib serializer")
                 
             except Exception as e:
                 # print(f"Error running serializer script: {e}")

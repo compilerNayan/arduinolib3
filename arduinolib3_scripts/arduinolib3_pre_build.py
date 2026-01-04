@@ -374,15 +374,15 @@ else:
 # print(f"{'=' * 60}")
 
 try:
-    # Try to import get_client_files from arduinolib1
-    # First, find arduinolib1_scripts
+    # Try to import get_client_files from serializationlib
+    # First, find serializationlib_scripts
     from arduinolib3_execute_scripts import find_library_scripts
-    arduinolib1_scripts_dir = find_library_scripts("arduinolib1_scripts")
+    serializationlib_scripts_dir = find_library_scripts("serializationlib_scripts")
     
-    if arduinolib1_scripts_dir:
-        sys.path.insert(0, str(arduinolib1_scripts_dir))
+    if serializationlib_scripts_dir:
+        sys.path.insert(0, str(serializationlib_scripts_dir))
         try:
-            from arduinolib1_core.arduinolib1_get_client_files import get_client_files
+            from serializationlib_core.serializationlib_get_client_files import get_client_files
             HAS_GET_CLIENT_FILES = True
         except ImportError:
             HAS_GET_CLIENT_FILES = False

@@ -2,7 +2,7 @@
 """
 Script to implement repository classes.
 
-Uses detect_repository to check if a file has _Repository macro.
+Uses detect_repository to check if a file has @Repository annotation.
 If it exists, creates a <class-name>Impl.h file in src/repository folder.
 """
 
@@ -163,7 +163,7 @@ class {impl_class_name} : public {class_name}, public CpaRepositoryImpl<{entity_
 
 def implement_repository(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
     """
-    Implement a repository class if //@Repository annotation is found.
+    Implement a repository class if @Repository annotation is found.
     
     Args:
         file_path: Path to the source file to check
@@ -196,33 +196,33 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
     
     # Check if file already exists
     if impl_file_path.exists():
-        print(f"⚠️  Implementation file already exists: {impl_file_path}")
+        # print(f"⚠️  Implementation file already exists: {impl_file_path}")
         return False
     
     # Generate the implementation class code
     impl_code = generate_impl_class(class_name, entity_type, id_type, file_path, is_templated)
     
     if dry_run:
-        print(f"Would create implementation file: {impl_file_path}")
-        print("=" * 60)
-        print(impl_code)
-        print("=" * 60)
+        # print(f"Would create implementation file: {impl_file_path}")
+        # print("=" * 60)
+        # print(impl_code)
+        # print("=" * 60)
         return True
     
     # Write the implementation file
     try:
         with open(impl_file_path, 'w', encoding='utf-8') as f:
             f.write(impl_code)
-        print(f"✓ Created implementation file: {impl_file_path}")
+        # print(f"✓ Created implementation file: {impl_file_path}")
         return True
     except Exception as e:
-        print(f"Error creating implementation file: {e}")
+        # print(f"Error creating implementation file: {e}")
         return False
 
 
 def process_file(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
     """
-    Process a file and implement repository if //@Repository annotation is found.
+    Process a file and implement repository if @Repository annotation is found.
     
     Args:
         file_path: Path to the source file
@@ -240,7 +240,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Implement repository classes for files with //@Repository annotation"
+        description="Implement repository classes for files with @Repository annotation"
     )
     parser.add_argument(
         "file_path",

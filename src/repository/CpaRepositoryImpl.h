@@ -15,9 +15,9 @@ template<typename Entity, typename ID>
 class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     Public Virtual ~CpaRepositoryImpl() = default;
 
-    //@Autowired
+    /// @Autowired
     IFileManagerPtr fileManager;
-    
+
     // Helper method to get IDs file path
     Protected StdString GetIdsFilePath() {
         StdString tableName = Entity::GetTableName();

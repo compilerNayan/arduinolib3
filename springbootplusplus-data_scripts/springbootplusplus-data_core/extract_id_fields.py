@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
-Extract _Id_ Fields Script
+Extract @Id Fields Script
 
-This script checks if a file has the Serializable macro (or _Entity macro),
-and if it does, extracts fields marked with _Id_ macro.
-The _Id_ macro can be followed by validation macros (like NotNull, NotBlank) 
+This script checks if a file has the @Serializable or @Entity annotation,
+and if it does, extracts fields marked with @Id annotation.
+The @Id annotation can be followed by validation annotations (like @NotNull, @NotBlank) 
 and then the type and variable name.
 
 Patterns supported:
-- _Id_
+- /// @Id
   int rollNo;
   
-- _Id_
+- /// @Id
   StdString name;
   
-- _Id_
+- /// @Id
   const long digit;
   
-- _Id_
-  NotNull
+- /// @Id
+  /// @NotNull
   int someVar;
 """
 
@@ -28,18 +28,18 @@ import os
 from pathlib import Path
 from typing import List, Dict, Optional
 
-print("Executing arduinolib3_core/extract_id_fields.py")
+# print("Executing springbootplusplus_data_core/extract_id_fields.py")
 
 # Add parent directory to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_scripts_dir = os.path.dirname(script_dir)
 sys.path.insert(0, parent_scripts_dir)
 
-# Try to import from arduinolib1 scripts
+# Try to import from serializationlib scripts
 try:
-    # Find arduinolib1_scripts directory
-    def find_arduinolib1_scripts():
-        """Find arduinolib1_scripts directory."""
+    # Find serializationlib_scripts directory
+    def find_serializationlib_scripts():
+        """Find serializationlib_scripts directory."""
         search_paths = []
         
         # Add current working directory
@@ -50,23 +50,23 @@ try:
         if project_dir:
             search_paths.append(Path(project_dir))
             
-            # Check build/_deps/arduinolib1-src/arduinolib1_scripts
-            build_deps = Path(project_dir) / "build" / "_deps" / "arduinolib1-src" / "arduinolib1_scripts"
+            # Check build/_deps/serializationlib-src/serializationlib_scripts
+            build_deps = Path(project_dir) / "build" / "_deps" / "serializationlib-src" / "serializationlib_scripts"
             if build_deps.exists() and build_deps.is_dir():
                 return build_deps
         
         # Check current file's parent directories
         current = Path(script_dir).resolve()
         for _ in range(10):
-            # Check in build/_deps/arduinolib1-src/
-            deps_path = current / "build" / "_deps" / "arduinolib1-src" / "arduinolib1_scripts"
+            # Check in build/_deps/serializationlib-src/
+            deps_path = current / "build" / "_deps" / "serializationlib-src" / "serializationlib_scripts"
             if deps_path.exists() and deps_path.is_dir():
                 return deps_path
             
             # Check sibling directories
             parent = current.parent
             if parent.name == "_deps":
-                lib_src = parent / "arduinolib1-src" / "arduinolib1_scripts"
+                lib_src = parent / "serializationlib-src" / "serializationlib_scripts"
                 if lib_src.exists() and lib_src.is_dir():
                     return lib_src
             
@@ -76,39 +76,39 @@ try:
         
         return None
     
-    arduinolib1_scripts_dir = find_arduinolib1_scripts()
-    if arduinolib1_scripts_dir:
-        sys.path.insert(0, str(arduinolib1_scripts_dir))
-        sys.path.insert(0, str(arduinolib1_scripts_dir / "arduinolib1_serializer"))
+    serializationlib_scripts_dir = find_serializationlib_scripts()
+    if serializationlib_scripts_dir:
+        sys.path.insert(0, str(serializationlib_scripts_dir))
+        sys.path.insert(0, str(serializationlib_scripts_dir / "serializationlib_serializer"))
         
         try:
             import S1_check_dto_macro
             import S2_extract_dto_fields
             import S6_discover_validation_macros
-            HAS_ARDUINOLIB1 = True
+            HAS_SERIALIZATIONLIB = True
         except ImportError as e:
-            print(f"Warning: Could not import arduinolib1 modules: {e}")
-            HAS_ARDUINOLIB1 = False
+            # print(f"Warning: Could not import serializationlib modules: {e}")
+            HAS_SERIALIZATIONLIB = False
     else:
-        print("Warning: Could not find arduinolib1_scripts directory")
-        HAS_ARDUINOLIB1 = False
+        # print("Warning: Could not find serializationlib_scripts directory")
+        HAS_SERIALIZATIONLIB = False
 except Exception as e:
-    print(f"Warning: Error setting up arduinolib1 imports: {e}")
-    HAS_ARDUINOLIB1 = False
+    # print(f"Warning: Error setting up serializationlib imports: {e}")
+    HAS_SERIALIZATIONLIB = False
 
 
-def check_has_serializable_macro(file_path: str, serializable_macro: str = "Entity") -> Optional[Dict[str, any]]:
+def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
     """
-    Check if a file has the //@Entity annotation.
+    Check if a file has the @Serializable or @Entity annotation.
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the annotation to search for (default: "Entity", looks for //@Entity)
+        serializable_macro: Name of the macro (Serializable -> @Serializable, _Entity -> @Entity)
         
     Returns:
         Dictionary with 'class_name', 'has_dto', 'line_number' if found, None otherwise
     """
-    if HAS_ARDUINOLIB1:
+    if HAS_SERIALIZATIONLIB:
         return S1_check_dto_macro.check_dto_macro(file_path, serializable_macro)
     else:
         # Fallback implementation
@@ -116,61 +116,43 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "Enti
             with open(file_path, 'r', encoding='utf-8') as file:
                 lines = file.readlines()
         except Exception as e:
-            print(f"Error reading file '{file_path}': {e}")
+            # print(f"Error reading file '{file_path}': {e}")
             return None
         
-        # Pattern to match //@Entity or /*@Entity*/ annotation (case-sensitive)
-        # We accept both because serializer might have already converted it
-        escaped_macro = re.escape(serializable_macro)
-        serializable_annotation_pattern = rf'^//@{escaped_macro}\s*$'
-        serializable_processed_pattern = rf'^/\*@{escaped_macro}\*/\s*$'
+        # Determine annotation name based on macro name
+        if serializable_macro == "_Entity":
+            annotation_name = "@Entity"
+        elif serializable_macro == "Serializable":
+            annotation_name = "@Serializable"
+        else:
+            # Default to @Serializable for backward compatibility
+            annotation_name = "@Serializable"
+        
+        # Pattern to match /// @Entity or ///@Entity or /// @Serializable or ///@Serializable annotation (ignoring whitespace)
+        # Also check for already processed /* @Entity */ or /* @Serializable */ pattern
+        annotation_pattern = rf'///\s*{re.escape(annotation_name)}\b'
+        processed_pattern = rf'/\*\s*{re.escape(annotation_name)}\s*\*/'
         class_pattern = r'class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:[:{])'
         
         for line_num, line in enumerate(lines, 1):
             stripped_line = line.strip()
             
-            # Accept both //@Entity and /*@Entity*/ - both indicate an Entity class
-            # Check for processed annotation first (/*@Entity*/)
-            processed_match = re.search(serializable_processed_pattern, stripped_line)
-            if processed_match:
-                # Found /*@Entity*/, this is still a valid Entity class
-                # Continue to find the class
+            # Check if line is already processed (/* @Entity */ or /* @Serializable */)
+            if re.search(processed_pattern, stripped_line):
+                continue
+            
+            # Check for annotation (/// @Entity or ///@Entity or /// @Serializable or ///@Serializable)
+            annotation_match = re.search(annotation_pattern, stripped_line)
+            if annotation_match:
                 for i in range(line_num, min(line_num + 11, len(lines) + 1)):
                     if i <= len(lines):
                         next_line = lines[i - 1].strip()
                         
-                        # Skip comments
-                        if next_line.startswith('//') or next_line.startswith('/*'):
+                        # Skip comments (but not the annotation itself which is in a comment)
+                        if next_line.startswith('/*') and not re.search(processed_pattern, next_line):
                             continue
-                        
-                        class_match = re.search(class_pattern, next_line)
-                        if class_match:
-                            class_name = class_match.group(1)
-                            return {
-                                'class_name': class_name,
-                                'has_dto': True,
-                                'dto_line': line_num,
-                                'class_line': i
-                            }
-                continue
-            
-            # Skip other comment types (but not //@ annotations)
-            if stripped_line.startswith('/*') and not stripped_line.startswith('//@'):
-                continue
-            
-            # Check for unprocessed annotation (//@Entity)
-            serializable_match = re.search(serializable_annotation_pattern, stripped_line)
-            if serializable_match:
-                for i in range(line_num, min(line_num + 11, len(lines) + 1)):
-                    if i <= len(lines):
-                        next_line = lines[i - 1].strip()
-                        
-                        # Skip already processed annotations
-                        if re.search(r'^/\*@', next_line):
-                            continue
-                        
-                        # Skip other comment types (but not //@ annotations)
-                        if next_line.startswith('/*') and not next_line.startswith('//@'):
+                        # Skip other single-line comments that aren't the annotation
+                        if next_line.startswith('//') and not re.search(annotation_pattern, next_line):
                             continue
                         
                         class_match = re.search(class_pattern, next_line)
@@ -188,7 +170,7 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "Enti
 
 def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[str, str] = None) -> List[Dict[str, str]]:
     """
-    Extract all fields marked with _Id_ macro.
+    Extract all fields marked with @Id annotation.
     
     Args:
         file_path: Path to the C++ file
@@ -203,11 +185,11 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
     except Exception as e:
-        print(f"Error reading file: {e}")
+        # print(f"Error reading file: {e}")
         return []
     
     # Find class boundaries
-    if HAS_ARDUINOLIB1:
+    if HAS_SERIALIZATIONLIB:
         boundaries = S2_extract_dto_fields.find_class_boundaries(file_path, class_name)
     else:
         # Fallback implementation
@@ -243,7 +225,7 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
     
     # Discover validation macros if not provided
     if validation_macros is None:
-        if HAS_ARDUINOLIB1:
+        if HAS_SERIALIZATIONLIB:
             try:
                 validation_macros = S6_discover_validation_macros.find_validation_macro_definitions(None)
             except:
@@ -251,15 +233,21 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         else:
             validation_macros = {}
     
-    # Build pattern for validation macros
+    # Build pattern for validation annotations
     macro_names = list(validation_macros.keys()) if validation_macros else []
-    macro_pattern = '|'.join(re.escape(macro) for macro in macro_names) if macro_names else ''
-    validation_pattern = rf'^\s*({macro_pattern})\s*$' if macro_pattern else None
+    # Create annotation patterns (e.g., 'NotNull' -> '/// @NotNull')
+    annotation_patterns = {}
+    for macro_name in macro_names:
+        annotation_patterns[macro_name] = rf'///\s*@{re.escape(macro_name)}\b'
     
-    # Pattern for //@Id annotation (case-sensitive)
-    # Also check for /*@Id*/ (already processed, but still valid - we should process it)
-    id_annotation_pattern = r'^\s*//@Id\s*$'
-    id_processed_pattern = r'^\s*/\*@Id\*/\s*$'
+    # Combined pattern to match any validation annotation
+    all_annotations = '|'.join(annotation_patterns.values()) if annotation_patterns else ''
+    validation_pattern = rf'({all_annotations})' if all_annotations else None
+    
+    # Pattern for /// @Id or ///@Id annotation (ignoring whitespace)
+    # Also check for already processed /* @Id */ pattern
+    id_annotation_pattern = r'///\s*@Id\b'
+    id_processed_pattern = r'/\*\s*@Id\s*\*/'
     
     # Pattern for field declaration
     # Matches: "int rollNo;", "StdString name;", "const long digit;", etc.
@@ -272,8 +260,12 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
         line = class_lines[i]
         stripped = line.strip()
         
-        # Skip other comment types (but not //@ or /*@ annotations)
-        if stripped.startswith('/*') and not (stripped.startswith('/*@') or stripped.startswith('//@')):
+        # Skip comments (but not the annotation itself which is in a comment)
+        if stripped.startswith('/*') and not re.search(id_processed_pattern, stripped):
+            i += 1
+            continue
+        # Skip other single-line comments that aren't the annotation
+        if stripped.startswith('//') and not re.search(id_annotation_pattern, stripped):
             i += 1
             continue
         
@@ -282,11 +274,13 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
             i += 1
             continue
         
-        # Check for both //@Id and /*@Id*/ annotations (both are valid)
+        # Check if line is already processed (/* @Id */)
+        if re.search(id_processed_pattern, stripped):
+            i += 1
+            continue
+        
+        # Check for @Id annotation (/// @Id or ///@Id)
         id_match = re.search(id_annotation_pattern, stripped)
-        if not id_match:
-            # Also check for processed annotation (/*@Id*/)
-            id_match = re.search(id_processed_pattern, stripped)
         if id_match:
             # Look ahead for field declaration (within next 15 lines, may have validation macros in between)
             found_field = False
@@ -295,19 +289,27 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
             for j in range(i + 1, min(i + 16, len(class_lines))):
                 next_line = class_lines[j].strip()
                 
-                # Skip other comment types (but not //@ or /*@ annotations)
-                if next_line.startswith('/*') and not (next_line.startswith('/*@') or next_line.startswith('//@')):
+                # Skip comments (but not the annotation itself)
+                if next_line.startswith('/*') and not re.search(id_processed_pattern, next_line):
+                    continue
+                # Skip other single-line comments that aren't annotations
+                if next_line.startswith('//') and not (re.search(id_annotation_pattern, next_line) or (validation_pattern and re.search(validation_pattern, next_line))):
                     continue
                 
                 # Skip empty lines
                 if not next_line:
                     continue
                 
-                # Check for validation annotations (can appear between //@Id and field)
+                # Check for validation annotations (can appear between @Id and field)
                 if validation_pattern and re.search(validation_pattern, next_line):
-                    validation_match = re.search(validation_pattern, next_line)
-                    if validation_match:
-                        validation_macros_found.append(validation_match.group(1))
+                    # Find which annotation was matched
+                    matched_annotation = None
+                    for macro_name, pattern in annotation_patterns.items():
+                        if re.search(pattern, next_line):
+                            matched_annotation = macro_name
+                            break
+                    if matched_annotation:
+                        validation_macros_found.append(matched_annotation)
                     continue
                 
                 # Check for field declaration
@@ -332,9 +334,8 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
                 
                 # Stop if we hit another annotation or access specifier
                 if next_line and (re.search(r'^\s*(public|private|protected)\s*:', next_line, re.IGNORECASE) or 
-                                 re.search(r'^\s*//@', next_line) or
-                                 re.search(r'^\s*/\*@', next_line)):
-                    # If we hit another //@Id, that's okay, we'll process it in the next iteration
+                                 re.search(r'^\s*(Dto|Serializable|_Entity|COMPONENT|SCOPE|VALIDATE|///\s*@(Id|Entity|Serializable|NotNull|NotEmpty|NotBlank))\s*$', next_line)):
+                    # If we hit another @Id, that's okay, we'll process it in the next iteration
                     if re.search(id_annotation_pattern, next_line):
                         break
                     # Otherwise, stop looking
@@ -348,18 +349,18 @@ def extract_id_fields(file_path: str, class_name: str, validation_macros: Dict[s
     return result
 
 
-def extract_id_fields_from_file(file_path: str, serializable_macro: str = "Entity") -> Optional[Dict[str, any]]:
+def extract_id_fields_from_file(file_path: str, serializable_macro: str = "_Entity") -> Optional[Dict[str, any]]:
     """
-    Extract //@Id fields from a file that has the //@Entity annotation.
+    Extract @Id fields from a file that has the @Serializable or @Entity annotation.
     
     Args:
         file_path: Path to the C++ file
-        serializable_macro: Name of the annotation to search for (default: "Entity", looks for //@Entity)
+        serializable_macro: Name of the macro (Serializable -> @Serializable, _Entity -> @Entity)
         
     Returns:
         Dictionary with 'class_name', 'has_serializable', and 'id_fields' keys, or None if error
     """
-    # Check if file has Serializable macro
+    # Check if file has @Serializable or @Entity annotation
     dto_info = check_has_serializable_macro(file_path, serializable_macro)
     
     if not dto_info or not dto_info.get('has_dto'):
@@ -375,7 +376,7 @@ def extract_id_fields_from_file(file_path: str, serializable_macro: str = "Entit
             'id_fields': []
         }
     
-    # Extract _Id fields
+    # Extract @Id fields
     id_fields = extract_id_fields(file_path, class_name)
     
     return {
@@ -390,7 +391,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Extract _Id_ fields from classes with Serializable macro"
+        description="Extract @Id fields from classes with @Serializable or @Entity annotation"
     )
     parser.add_argument(
         "file_path",
@@ -398,8 +399,8 @@ def main():
     )
     parser.add_argument(
         "--macro",
-        default="Entity",
-        help="Name of the Entity annotation to search for (default: Entity, looks for //@Entity)"
+        default="_Entity",
+        help="Name of the macro (Serializable -> @Serializable, _Entity -> @Entity)"
     )
     
     args = parser.parse_args()
@@ -407,17 +408,31 @@ def main():
     result = extract_id_fields_from_file(args.file_path, args.macro)
     
     if result and result.get('has_serializable'):
-        print(f"✅ Class '{result['class_name']}' has //@{args.macro} annotation")
+        # Determine annotation name for display
+        if args.macro == "_Entity":
+            annotation_name = "@Entity"
+        elif args.macro == "Serializable":
+            annotation_name = "@Serializable"
+        else:
+            annotation_name = "@Serializable"
+        # print(f"✅ Class '{result['class_name']}' has {annotation_name} annotation")
         id_fields = result.get('id_fields', [])
-        print(f"   Found {len(id_fields)} //@Id field(s):")
-        for field in id_fields:
-            validation_info = ""
-            if 'validation_macros' in field and field['validation_macros']:
-                validation_info = f" (with {', '.join(field['validation_macros'])})"
-            print(f"     {field['type']} {field['name']}{validation_info}")
+        # print(f"   Found {len(id_fields)} @Id field(s):")
+        # for field in id_fields:
+        #     validation_info = ""
+        #     if 'validation_macros' in field and field['validation_macros']:
+        #         validation_info = f" (with {', '.join(field['validation_macros'])})"
+        #     print(f"     {field['type']} {field['name']}{validation_info}")
         return 0
     else:
-        print(f"❌ No class with //@{args.macro} annotation found, or no //@Id fields found")
+        # Determine annotation name for display
+        if args.macro == "_Entity":
+            annotation_name = "@Entity"
+        elif args.macro == "Serializable":
+            annotation_name = "@Serializable"
+        else:
+            annotation_name = "@Serializable"
+        # print(f"❌ No class with {annotation_name} annotation found, or no @Id fields found")
         return 1
 
 

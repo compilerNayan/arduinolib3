@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 """
-Script to detect _Repository macro and extract class information from C++ source files.
+Script to detect @Repository annotation and extract class information from C++ source files.
 
 Detects patterns:
-1. _Repository
+1. /// @Repository
    DefineStandardPointers(SomeClass)
    class SomeClass : public CpaRepository<Something, SomethingElse>
 
-2. _Repository
+2. /// @Repository
    DefineStandardPointers(SomeClass)
    class SomeClass final : public CpaRepository<Something, SomethingElse>
 
 3. DefineStandardPointers(SomeClass)
-   _Repository
+   /// @Repository
    class SomeClass final : public CpaRepository<Something, SomethingElse>
 
 4. DefineStandardPointers(SomeClass)
-   _Repository
+   /// @Repository
    class SomeClass : public CpaRepository<Something, SomethingElse>
 
 Returns: class_name, template_param1, template_param2
@@ -39,17 +39,21 @@ def remove_comments(content: str) -> str:
 
 
 def find_repository_annotation(content: str) -> bool:
-    """Check if //@Repository annotation is present (not already processed)."""
-    # Look for //@Repository annotation (case-sensitive)
-    # Also check for /*@Repository*/ (already processed, should be ignored)
-    annotation_pattern = r'//@Repository\b'
-    processed_pattern = r'/\*@Repository\*/\b'
+    """Check if @Repository annotation is present (not processed)."""
+    # Look for /// @Repository or ///@Repository annotation (ignoring whitespace)
+    # Also check for already processed /* @Repository */ pattern
+    # Pattern matches: /// followed by optional whitespace, then @Repository
+    pattern = r'///\s*@Repository\b'
     
-    # Check for active annotation (not processed)
-    if re.search(annotation_pattern, content):
+    # Check if annotation exists and is not already processed
+    if re.search(pattern, content):
+        # Check if it's already processed (/* @Repository */)
+        processed_pattern = r'/\*\s*@Repository\s*\*/'
+        if re.search(processed_pattern, content):
+            # Already processed, don't treat as found
+            return False
         return True
     
-    # If only processed annotation exists, return False (already processed)
     return False
 
 
@@ -90,7 +94,7 @@ def is_class_templated(content: str, class_name: str) -> bool:
 
 def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
     """
-    Detect //@Repository annotation and extract class information.
+    Detect @Repository annotation and extract class information.
     
     Returns: (class_name, template_param1, template_param2, is_templated) or None
     """
@@ -98,10 +102,10 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        print(f"Error reading file {file_path}: {e}", file=sys.stderr)
+        # print(f"Error reading file {file_path}: {e}", file=sys.stderr)
         return None
     
-    # Check if //@Repository annotation is present (not already processed)
+    # Check if @Repository annotation is present (not processed)
     if not find_repository_annotation(content):
         return None
     
@@ -128,7 +132,7 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
 def main():
     """Main function to run the script."""
     if len(sys.argv) < 2:
-        print("Usage: python detect_repository.py <source_file>", file=sys.stderr)
+        # print("Usage: python detect_repository.py <source_file>", file=sys.stderr)
         sys.exit(1)
     
     file_path = sys.argv[1]
@@ -137,19 +141,19 @@ def main():
     if result:
         if len(result) == 4:
             class_name, type1, type2, is_templated = result
-            print(f"Class: {class_name}")
-            print(f"Template Parameter 1: {type1}")
-            print(f"Template Parameter 2: {type2}")
-            print(f"Is Templated: {is_templated}")
+            # print(f"Class: {class_name}")
+            # print(f"Template Parameter 1: {type1}")
+            # print(f"Template Parameter 2: {type2}")
+            # print(f"Is Templated: {is_templated}")
         else:
             # Backward compatibility
             class_name, type1, type2 = result
-            print(f"Class: {class_name}")
-            print(f"Template Parameter 1: {type1}")
-            print(f"Template Parameter 2: {type2}")
+            # print(f"Class: {class_name}")
+            # print(f"Template Parameter 1: {type1}")
+            # print(f"Template Parameter 2: {type2}")
         sys.exit(0)
     else:
-        print("No //@Repository annotation found or pattern not matched.", file=sys.stderr)
+        # print("No @Repository annotation found or pattern not matched.", file=sys.stderr)
         sys.exit(1)
 
 

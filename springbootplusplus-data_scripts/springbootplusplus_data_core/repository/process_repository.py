@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Script to process repository classes: detect _Repository macro, create implementation,
+Script to process repository classes: detect @Repository annotation, create implementation,
 and add include statement to the original repository file.
 
 This script:
-1. Detects _Repository macro in a file
+1. Detects @Repository annotation in a file
 2. Creates the implementation file (UserRepositoryImpl.h)
 3. Adds an include statement for the impl file in the original repository file
    (just before the last #endif, or at the end if no #endif exists)
@@ -66,13 +66,13 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
         with open(file_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
+        # print(f"Error reading file {file_path}: {e}")
         return False
     
     # Check if include already exists
     escaped_include = re.escape(include_path)
     if re.search(rf'#include\s+["<]{escaped_include}[">]', content):
-        print(f"⚠️  Include for {include_path} already exists in {file_path}")
+        # print(f"⚠️  Include for {include_path} already exists in {file_path}")
         return False
     
     # Find the last #endif
@@ -82,11 +82,11 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
     include_statement = f'#include "{include_path}"'
     
     if dry_run:
-        if last_endif_line:
-            print(f"Would add include before line {last_endif_line} (last #endif)")
-        else:
-            print(f"Would add include at the end of file (no #endif found)")
-        print(f"  {include_statement}")
+        # if last_endif_line:
+        #     print(f"Would add include before line {last_endif_line} (last #endif)")
+        # else:
+        #     print(f"Would add include at the end of file (no #endif found)")
+        # print(f"  {include_statement}")
         return True
     
     # Add the include
@@ -102,84 +102,78 @@ def add_include_to_file(file_path: str, include_path: str, dry_run: bool = False
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
-        print(f"✓ Added include to {file_path}: {include_path}")
+        # print(f"✓ Added include to {file_path}: {include_path}")
         return True
     except Exception as e:
-        print(f"Error writing file {file_path}: {e}")
+        # print(f"Error writing file {file_path}: {e}")
         return False
 
 
-def convert_repository_annotation_to_processed(file_path: str, dry_run: bool = False) -> bool:
+def comment_repository_annotation(file_path: str, dry_run: bool = False) -> bool:
     """
-    Convert //@Repository to /*@Repository*/ in the source file.
-    This marks the annotation as processed so it won't be processed again.
+    Replace the @Repository annotation with processed marker in the source file.
     
     Args:
         file_path: Path to the repository file to modify
         dry_run: If True, don't actually modify the file
         
     Returns:
-        True if annotation was converted (or would be converted), False otherwise
+        True if annotation was processed (or would be processed), False otherwise
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
+            content = f.read()
     except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
+        # print(f"Error reading file {file_path}: {e}")
         return False
     
+    lines = content.split('\n')
     modified = False
     
-    # Pattern to match //@Repository annotation
-    annotation_pattern = r'^(\s*)//@Repository\s*$'
-    
-    # Find and convert //@Repository annotation
+    # Find and replace @Repository annotation
     for i, line in enumerate(lines):
         stripped = line.strip()
-        
-        # Skip already processed annotations (/*@Repository*/)
-        if re.match(r'^\s*/\*@Repository\*/\s*$', stripped):
-            continue
-        
-        # Check for //@Repository annotation
-        match = re.match(annotation_pattern, line)
-        if match:
-            indent = match.group(1)
-            # Convert to /*@Repository*/
-            if not dry_run:
-                lines[i] = f'{indent}/*@Repository*/\n'
+        # Check for /// @Repository or ///@Repository annotation (ignoring whitespace)
+        if re.match(r'^///\s*@Repository\s*$', stripped):
+            # Replace with processed marker, preserving original indentation
+            if line.startswith(' '):
+                # Has indentation, preserve it
+                indent = len(line) - len(line.lstrip())
+                lines[i] = ' ' * indent + '/* @Repository */'
+            else:
+                # No indentation
+                lines[i] = '/* @Repository */'
             modified = True
-            print(f"✓ Found //@Repository annotation on line {i+1}, converting to /*@Repository*/")
-            if dry_run:
-                print(f"    Would convert: {stripped} -> /*@Repository*/")
+            # print(f"✓ Found @Repository annotation on line {i+1}, marking as processed")
             break
     
     if not modified:
         # Check if already processed
         for i, line in enumerate(lines):
             stripped = line.strip()
-            if re.match(r'^\s*/\*@Repository\*/\s*$', stripped):
-                print(f"✓ //@Repository annotation already processed in {file_path} (line {i+1})")
+            # Check for processed version (/* @Repository */)
+            if re.match(r'^/\*\s*@Repository\s*\*/\s*$', stripped):
+                # print(f"✓ @Repository annotation already processed in {file_path} (line {i+1})")
                 return True
         # Debug: print first few lines to see what we're looking at
-        print(f"⚠️  //@Repository annotation not found in {file_path}")
-        print(f"   First 15 lines of file:")
-        for j, l in enumerate(lines[:15], 1):
-            print(f"   {j:2}: {repr(l)}")
+        # print(f"⚠️  @Repository annotation not found in {file_path}")
+        # print(f"   First 15 lines of file:")
+        # for j, l in enumerate(lines[:15], 1):
+        #     print(f"   {j:2}: {repr(l)}")
         return False
     
     if dry_run:
-        print(f"Would convert //@Repository to /*@Repository*/ in {file_path}")
+        # print(f"Would mark @Repository annotation as processed in {file_path}")
         return True
     
     # Write back to file
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
-            f.writelines(lines)
-        print(f"✓ Converted //@Repository to /*@Repository*/ in {file_path}")
+            f.write('\n'.join(lines))
+        # print(f"✓ Marked @Repository annotation as processed in {file_path}")
         return True
     except Exception as e:
-        print(f"Error writing file {file_path}: {e}")
+        # print(f"Error writing file {file_path}: {e}")
         return False
 
 
@@ -202,7 +196,7 @@ def calculate_include_path(source_file_path: str, impl_file_path: str) -> str:
 
 def process_repository(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
     """
-    Process a repository file: detect macro, create implementation, and add include.
+    Process a repository file: detect annotation, create implementation, and add include.
     
     Args:
         file_path: Path to the source file to check
@@ -220,15 +214,15 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     
     if len(result) == 4:
         class_name, entity_type, id_type, is_templated = result
-        if is_templated:
-            print(f"🔍 Found templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
-        else:
-            print(f"🔍 Found non-templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+        # if is_templated:
+        #     print(f"🔍 Found templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+        # else:
+        #     print(f"🔍 Found non-templated repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
     else:
         # Backward compatibility
         class_name, entity_type, id_type = result
         is_templated = True
-        print(f"🔍 Found repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
+        # print(f"🔍 Found repository: {class_name}<{entity_type}, {id_type}> in {file_path}")
     
     # Step 2: Create the implementation file (or check if it exists)
     repository_dir = Path(library_dir) / "src" / "repository"
@@ -240,28 +234,28 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     
     # Check if implementation file exists (either newly created or already existed)
     if not dry_run and not impl_file_path.exists():
-        print(f"⚠️  Implementation file was not created: {impl_file_path}")
+        # print(f"⚠️  Implementation file was not created: {impl_file_path}")
         return False
     
     # Step 4: Calculate include path (relative from source file to impl file)
     include_path = calculate_include_path(file_path, str(impl_file_path))
-    print(f"📝 Calculated include path: {include_path}")
+    # print(f"📝 Calculated include path: {include_path}")
     
     # Step 5: Add include to the original repository file
     include_added = add_include_to_file(file_path, include_path, dry_run)
     
     if not include_added:
-        print(f"⚠️  Failed to add include for repository {class_name}")
+        # print(f"⚠️  Failed to add include for repository {class_name}")
         return False
     
-    # Step 6: Convert //@Repository to /*@Repository*/
-    annotation_converted = convert_repository_annotation_to_processed(file_path, dry_run)
+    # Step 6: Mark the @Repository annotation as processed
+    annotation_processed = comment_repository_annotation(file_path, dry_run)
     
-    if include_added and annotation_converted:
-        print(f"✅ Successfully processed repository {class_name}")
+    if include_added and annotation_processed:
+        # print(f"✅ Successfully processed repository {class_name}")
         return True
     else:
-        print(f"⚠️  Repository {class_name} processed but annotation conversion failed")
+        # print(f"⚠️  Repository {class_name} processed but annotation marking failed")
         return include_added  # Return True if at least include was added
 
 
@@ -270,7 +264,7 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Process repository classes: detect _Repository macro, create implementation, and add include"
+        description="Process repository classes: detect @Repository annotation, create implementation, and add include"
     )
     parser.add_argument(
         "file_path",

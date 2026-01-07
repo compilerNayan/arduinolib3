@@ -193,27 +193,59 @@ def execute_scripts(project_dir, library_dir):
         
         from springbootplusplus_data_core.inject_primary_key_methods import process_file
         
+        # Import get_all_library_dirs function
+        # We need to import it dynamically to avoid circular imports
+        try:
+            import importlib.util
+            pre_build_path = Path(__file__).parent / "springbootplusplus_data_pre_build.py"
+            if pre_build_path.exists():
+                spec = importlib.util.spec_from_file_location("springbootplusplus_data_pre_build", pre_build_path)
+                pre_build_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(pre_build_module)
+                get_all_library_dirs = pre_build_module.get_all_library_dirs
+            else:
+                get_all_library_dirs = None
+        except Exception:
+            get_all_library_dirs = None
+        
+        processed_count = 0
+        all_files_to_process = []
+        
         # Get all client files to process
         if HAS_GET_CLIENT_FILES and project_dir:
             client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
-            
-            processed_count = 0
-            for file_path in client_files:
-                try:
-                    if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
-                        processed_count += 1
-                except Exception as e:
-                    # print(f"Warning: Error processing {file_path}: {e}")
-                    pass
-            
-            if processed_count > 0:
-                # print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
+            all_files_to_process.extend(client_files)
+        
+        # Also process files from all discovered libraries
+        if HAS_GET_CLIENT_FILES and get_all_library_dirs:
+            try:
+                all_libs = get_all_library_dirs(project_dir)
+                if all_libs and all_libs.get('root_dirs'):
+                    for lib_name, lib_dir in all_libs['by_name'].items():
+                        # Skip arduinojson library
+                        if "arduinojson" in lib_name.lower():
+                            continue
+                        # Get header files from this library
+                        lib_files = get_client_files(str(lib_dir), skip_exclusions=True, file_extensions=['.h'])
+                        if lib_files:
+                            all_files_to_process.extend(lib_files)
+            except Exception:
                 pass
-            else:
-                # print("\nℹ️  No files with @Id fields found for primary key injection")
+        
+        # Process all collected files
+        for file_path in all_files_to_process:
+            try:
+                if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
+                    processed_count += 1
+            except Exception as e:
+                # print(f"Warning: Error processing {file_path}: {e}")
                 pass
+        
+        if processed_count > 0:
+            # print(f"\n✅ Successfully injected primary key methods in {processed_count} file(s)")
+            pass
         else:
-            # print("Warning: Could not get client files for primary key injection")
+            # print("\nℹ️  No files with @Id fields found for primary key injection")
             pass
             
     except ImportError as e:

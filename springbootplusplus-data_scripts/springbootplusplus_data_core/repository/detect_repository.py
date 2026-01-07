@@ -108,17 +108,6 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
     # Check if @Repository annotation is present (not processed)
     annotation_found = find_repository_annotation(content)
     
-    # Debug: Log for MyEntityRepository
-    if "MyEntityRepository" in file_path:
-        print(f"DEBUG detect_repository: file_path: {file_path}")
-        print(f"DEBUG detect_repository: find_repository_annotation returned: {annotation_found}")
-        # Check for processed annotation
-        processed_pattern = r'/\*\s*@Repository\s*\*/'
-        has_processed = bool(re.search(processed_pattern, content))
-        print(f"DEBUG detect_repository: Has processed annotation (/* @Repository */): {has_processed}")
-        if has_processed:
-            print(f"DEBUG detect_repository: WARNING - Annotation is marked as processed but detect_repository only looks for unprocessed annotations")
-    
     if not annotation_found:
         return None
     

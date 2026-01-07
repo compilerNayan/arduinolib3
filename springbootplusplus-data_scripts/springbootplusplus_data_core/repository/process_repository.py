@@ -206,16 +206,8 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     Returns:
         True if repository was processed successfully, False otherwise
     """
-    # Debug: Log when processing MyEntityRepository
-    if "MyEntityRepository" in file_path:
-        print(f"DEBUG process_repository: Processing file: {file_path}")
-        print(f"DEBUG process_repository: library_dir: {library_dir}")
-    
     # Step 1: Detect repository in the file
     result = detect_repository(file_path)
-    
-    if "MyEntityRepository" in file_path:
-        print(f"DEBUG process_repository: detect_repository returned: {result}")
     
     # If annotation is already processed, check if implementation file exists
     # If it doesn't exist, we need to reprocess it
@@ -233,18 +225,8 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
                     repository_dir = Path(library_dir) / "src" / "repository"
                     impl_file_path = repository_dir / f"{class_name}Impl.h"
                     
-                    if "MyEntityRepository" in file_path:
-                        print(f"DEBUG process_repository: Annotation is processed, checking if impl exists: {impl_file_path}")
-                        print(f"DEBUG process_repository: impl_file_path.exists(): {impl_file_path.exists()}")
-                    
                     if not impl_file_path.exists():
-                        if "MyEntityRepository" in file_path:
-                            print(f"DEBUG process_repository: ERROR - Annotation marked as processed but impl file missing!")
-                            print(f"DEBUG process_repository: This indicates file creation failed in a previous run")
-                            print(f"DEBUG process_repository: Will attempt to create file now by treating as unprocessed")
-                        # Reprocess by temporarily changing annotation back
-                        # But first, let's see if we can detect it anyway
-                        # Actually, let's just manually extract the info and create the file
+                        # Reprocess by manually extracting the info and creating the file
                         content_no_comments = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
                         content_no_comments = re.sub(r'/\*.*?\*/', '', content_no_comments, flags=re.DOTALL)
                         template_match = re.search(rf'class\s+{re.escape(class_name)}\s+(?:final\s+)?:\s*public\s+(?:virtual\s+)?CpaRepository\s*<\s*([^,<>]+)\s*,\s*([^,<>]+)\s*>', content_no_comments)
@@ -253,11 +235,8 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
                             id_type = template_match.group(2).strip()
                             is_templated = bool(re.search(rf'template\s*<\s*[^>]+\s*>\s*class\s+{re.escape(class_name)}', content_no_comments))
                             result = (class_name, entity_type, id_type, is_templated)
-                            if "MyEntityRepository" in file_path:
-                                print(f"DEBUG process_repository: Manually extracted info: {result}")
         except Exception as e:
-            if "MyEntityRepository" in file_path:
-                print(f"DEBUG process_repository: Exception checking processed annotation: {e}")
+            pass
     
     if not result:
         return False
@@ -279,23 +258,12 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     impl_file_name = f"{class_name}Impl.h"
     impl_file_path = repository_dir / impl_file_name
     
-    if "MyEntityRepository" in file_path:
-        print(f"DEBUG process_repository: repository_dir: {repository_dir}")
-        print(f"DEBUG process_repository: impl_file_path: {impl_file_path}")
-        print(f"DEBUG process_repository: impl_file_path.exists(): {impl_file_path.exists()}")
-    
     # Try to create the implementation file
     # Pass repository_info if we manually extracted it (for processed annotations)
     impl_created = implement_repository(file_path, library_dir, dry_run, repository_info=result if result else None)
     
-    if "MyEntityRepository" in file_path:
-        print(f"DEBUG process_repository: implement_repository returned: {impl_created}")
-        print(f"DEBUG process_repository: After implement_repository, impl_file_path.exists(): {impl_file_path.exists()}")
-    
     # Check if implementation file exists (either newly created or already existed)
     if not dry_run and not impl_file_path.exists():
-        if "MyEntityRepository" in file_path:
-            print(f"DEBUG process_repository: ERROR - Implementation file was not created: {impl_file_path}")
         # print(f"⚠️  Implementation file was not created: {impl_file_path}")
         return False
     

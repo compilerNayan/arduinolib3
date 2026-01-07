@@ -205,8 +205,7 @@ def execute_scripts(project_dir, library_dir):
                 get_all_library_dirs = pre_build_module.get_all_library_dirs
             else:
                 get_all_library_dirs = None
-        except Exception as e:
-            print(f"DEBUG inject_primary_key: Error importing get_all_library_dirs: {e}")
+        except Exception:
             get_all_library_dirs = None
         
         processed_count = 0
@@ -216,15 +215,12 @@ def execute_scripts(project_dir, library_dir):
         if HAS_GET_CLIENT_FILES and project_dir:
             client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
             all_files_to_process.extend(client_files)
-            print(f"DEBUG inject_primary_key: Found {len(client_files)} client files")
         
         # Also process files from all discovered libraries
         if HAS_GET_CLIENT_FILES and get_all_library_dirs:
             try:
                 all_libs = get_all_library_dirs(project_dir)
-                print(f"DEBUG inject_primary_key: get_all_library_dirs returned: {all_libs is not None}")
                 if all_libs and all_libs.get('root_dirs'):
-                    print(f"DEBUG inject_primary_key: Found {len(all_libs['by_name'])} libraries")
                     for lib_name, lib_dir in all_libs['by_name'].items():
                         # Skip arduinojson library
                         if "arduinojson" in lib_name.lower():
@@ -232,34 +228,16 @@ def execute_scripts(project_dir, library_dir):
                         # Get header files from this library
                         lib_files = get_client_files(str(lib_dir), skip_exclusions=True, file_extensions=['.h'])
                         if lib_files:
-                            print(f"DEBUG inject_primary_key: Found {len(lib_files)} files in library {lib_name}")
                             all_files_to_process.extend(lib_files)
-            except Exception as e:
-                print(f"DEBUG inject_primary_key: Exception processing libraries: {e}")
-                import traceback
-                traceback.print_exc()
-        
-        print(f"DEBUG inject_primary_key: Total files to process: {len(all_files_to_process)}")
+            except Exception:
+                pass
         
         # Process all collected files
         for file_path in all_files_to_process:
             try:
-                # Debug: Check if this is MyEntity
-                if "MyEntity" in str(file_path) and "05-MyEntity" in str(file_path):
-                    print(f"DEBUG inject_primary_key: Processing MyEntity file: {file_path}")
-                
-                result = process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False)
-                
-                if "MyEntity" in str(file_path) and "05-MyEntity" in str(file_path):
-                    print(f"DEBUG inject_primary_key: process_file returned: {result}")
-                
-                if result:
+                if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
                     processed_count += 1
             except Exception as e:
-                if "MyEntity" in str(file_path) and "05-MyEntity" in str(file_path):
-                    print(f"DEBUG inject_primary_key: Exception processing MyEntity: {e}")
-                    import traceback
-                    traceback.print_exc()
                 # print(f"Warning: Error processing {file_path}: {e}")
                 pass
         

@@ -127,31 +127,16 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     Returns:
         True if successful, False otherwise
     """
-    # Debug: Check if this is MyEntity
-    is_my_entity = "MyEntity" in str(file_path) and "05-MyEntity" in str(file_path)
-    
-    if is_my_entity:
-        print(f"DEBUG inject_primary_key_methods: file_path: {file_path}")
-        print(f"DEBUG inject_primary_key_methods: class_name: {class_name}, field_type: {field_type}, field_name: {field_name}")
-    
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
     except Exception as e:
-        if is_my_entity:
-            print(f"DEBUG inject_primary_key_methods: Error reading file: {e}")
         # print(f"Error reading file: {e}")
         return False
     
     # Find class boundaries
     boundaries = find_class_boundaries(file_path, class_name)
-    
-    if is_my_entity:
-        print(f"DEBUG inject_primary_key_methods: find_class_boundaries returned: {boundaries}")
-    
     if not boundaries:
-        if is_my_entity:
-            print(f"DEBUG inject_primary_key_methods: ERROR - Could not find class boundaries for {class_name}")
         # print(f"Error: Could not find class boundaries for {class_name}")
         return False
     
@@ -165,30 +150,18 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     class_lines = lines[start_line - 1:end_line]
     class_content = ''.join(class_lines)
     
-    if is_my_entity:
-        print(f"DEBUG inject_primary_key_methods: Checking if methods exist. GetPrimaryKey() in content: {'GetPrimaryKey()' in class_content}")
-        print(f"DEBUG inject_primary_key_methods: GetTableName() in content: {'GetTableName()' in class_content}")
-    
     if 'GetPrimaryKey()' in class_content or 'GetTableName()' in class_content:
-        if is_my_entity:
-            print(f"DEBUG inject_primary_key_methods: Methods already exist, skipping")
         # print(f"⚠️  Primary key methods already exist in {class_name}, skipping injection")
         return False
     
     # Generate the methods code
     methods_code = generate_primary_key_methods(field_type, field_name, class_name)
     
-    if is_my_entity:
-        print(f"DEBUG inject_primary_key_methods: Generated methods code (first 200 chars): {methods_code[:200]}")
-    
     # Find the indentation of the closing brace
     closing_line = lines[closing_line_idx]
     # Get indentation from the closing brace line
     indent_match = re.match(r'^(\s*)', closing_line)
     indent = indent_match.group(1) if indent_match else "    "
-    
-    if is_my_entity:
-        print(f"DEBUG inject_primary_key_methods: Indent: '{indent}'")
     
     # Add proper indentation to methods
     indented_methods = []
@@ -201,8 +174,6 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     methods_code = '\n'.join(indented_methods)
     
     if dry_run:
-        if is_my_entity:
-            print(f"DEBUG inject_primary_key_methods: DRY RUN - would inject methods")
         # print(f"Would inject the following methods into {class_name} in {file_path}:")
         # print("=" * 60)
         # print(methods_code)
@@ -221,9 +192,6 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
             insert_position = i + 1
             break
     
-    if is_my_entity:
-        print(f"DEBUG inject_primary_key_methods: Insert position: {insert_position}")
-    
     # Ensure we have a newline before the methods
     methods_code = '\n' + methods_code
     
@@ -239,15 +207,9 @@ def inject_primary_key_methods(file_path: str, class_name: str, field_type: str,
     try:
         with open(file_path, 'w', encoding='utf-8') as file:
             file.writelines(lines)
-        if is_my_entity:
-            print(f"DEBUG inject_primary_key_methods: Successfully wrote methods to file")
         # print(f"✓ Injected GetPrimaryKey() methods into {class_name} in {file_path}")
         return True
     except Exception as e:
-        if is_my_entity:
-            print(f"DEBUG inject_primary_key_methods: ERROR writing file: {e}")
-            import traceback
-            traceback.print_exc()
         # print(f"Error writing file: {e}")
         return False
 
@@ -264,25 +226,12 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     Returns:
         True if successful, False otherwise
     """
-    # Debug: Check if this is MyEntity
-    is_my_entity = "MyEntity" in str(file_path) and "05-MyEntity" in str(file_path)
-    
-    if is_my_entity:
-        print(f"DEBUG process_file: Processing file: {file_path}")
-        print(f"DEBUG process_file: serializable_macro: {serializable_macro}")
-        print(f"DEBUG process_file: HAS_EXTRACT_ID: {HAS_EXTRACT_ID}")
-    
     if not HAS_EXTRACT_ID:
-        if is_my_entity:
-            print(f"DEBUG process_file: ERROR - extract_id_fields module not available")
         # print("Error: extract_id_fields module not available")
         return False
     
     # Extract @Id fields
     result = extract_id_fields_from_file(file_path, serializable_macro)
-    
-    if is_my_entity:
-        print(f"DEBUG process_file: extract_id_fields_from_file returned: {result}")
     
     if not result or not result.get('has_serializable'):
         # Determine annotation name for display
@@ -292,19 +241,12 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
             annotation_name = "@Serializable"
         else:
             annotation_name = "@Serializable"
-        if is_my_entity:
-            print(f"DEBUG process_file: File does not have {annotation_name} annotation or result is None")
         # print(f"File {file_path} does not have {annotation_name} annotation, skipping")
         return False
     
     id_fields = result.get('id_fields', [])
     
-    if is_my_entity:
-        print(f"DEBUG process_file: id_fields: {id_fields}")
-    
     if not id_fields:
-        if is_my_entity:
-            print(f"DEBUG process_file: No @Id fields found in {result.get('class_name')}")
         # print(f"No @Id fields found in {result.get('class_name')}, skipping")
         return False
     
@@ -315,16 +257,10 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
     field_name = primary_key_field['name']
     class_name = result['class_name']
     
-    if is_my_entity:
-        print(f"DEBUG process_file: Found primary key field in {class_name}: {field_type} {field_name}")
+    # print(f"Found primary key field in {class_name}: {field_type} {field_name}")
     
     # Inject the methods
-    injection_result = inject_primary_key_methods(file_path, class_name, field_type, field_name, dry_run)
-    
-    if is_my_entity:
-        print(f"DEBUG process_file: inject_primary_key_methods returned: {injection_result}")
-    
-    return injection_result
+    return inject_primary_key_methods(file_path, class_name, field_type, field_name, dry_run)
 
 
 def main():

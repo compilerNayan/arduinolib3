@@ -14,6 +14,7 @@ from pathlib import Path
 script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(script_dir)
 sys.path.insert(0, parent_dir)
+sys.path.insert(0, script_dir)
 
 try:
     from get_client_files import get_client_files
@@ -166,7 +167,14 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
             file_path, class_name, validation_macros
         )
         
-        methods_code = S3_inject_serialization.generate_serialization_methods(class_name, fields, validation_fields_by_macro)
+        # Extract @Id fields for primary key methods
+        try:
+            from extract_id_fields import extract_id_fields
+            id_fields = extract_id_fields(file_path, class_name)
+        except Exception:
+            id_fields = []
+        
+        methods_code = S3_inject_serialization.generate_serialization_methods(class_name, fields, validation_fields_by_macro, id_fields)
         
         if not dry_run:
             if optional_fields:

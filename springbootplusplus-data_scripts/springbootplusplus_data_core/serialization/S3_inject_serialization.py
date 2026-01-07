@@ -14,13 +14,17 @@ from typing import List, Dict, Optional
 
 # Add parent directory to path for imports
 script_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(script_dir)
 sys.path.insert(0, script_dir)
+sys.path.insert(0, parent_dir)
 
 try:
     import S1_check_dto_macro
     import S2_extract_dto_fields
     import S6_discover_validation_macros
     import S7_extract_validation_fields
+    # Import extract_id_fields for primary key generation
+    from extract_id_fields import extract_id_fields
 except ImportError as e:
     sys.exit(1)
 
@@ -82,10 +86,64 @@ def extract_inner_type_from_optional(field_type: str) -> str:
     return field_type
 
 
-def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]], validation_fields_by_macro: Dict[str, List[Dict[str, str]]] = None) -> str:
-    """Generate Serialize() and Deserialize() methods for an Entity class."""
+def generate_primary_key_methods(class_name: str, id_fields: List[Dict[str, str]] = None) -> str:
+    """
+    Generate GetPrimaryKey(), GetPrimaryKeyName(), and GetTableName() methods.
+    
+    Args:
+        class_name: Name of the class
+        id_fields: List of @Id field dictionaries with 'type' and 'name' keys
+        
+    Returns:
+        String containing the method definitions
+    """
+    methods = []
+    
+    # If we have @Id fields, use the first one as primary key
+    if id_fields and len(id_fields) > 0:
+        primary_key_field = id_fields[0]
+        field_type = primary_key_field['type']
+        field_name = primary_key_field['name']
+        
+        # GetPrimaryKey() method
+        methods.append(f"    inline {field_type} GetPrimaryKey() {{")
+        methods.append(f"        return {field_name};")
+        methods.append(f"    }}")
+        methods.append("")
+        
+        # GetPrimaryKeyName() method
+        methods.append(f"    inline Static StdString GetPrimaryKeyName() {{")
+        methods.append(f'        return "{field_name}";')
+        methods.append(f"    }}")
+    else:
+        # No @Id field found, generate methods that return default values
+        # GetPrimaryKey() method - return default constructed value
+        methods.append(f"    inline int GetPrimaryKey() {{")
+        methods.append(f"        return 0;")
+        methods.append(f"    }}")
+        methods.append("")
+        
+        # GetPrimaryKeyName() method - return empty string
+        methods.append(f"    inline Static StdString GetPrimaryKeyName() {{")
+        methods.append(f'        return "";')
+        methods.append(f"    }}")
+    
+    methods.append("")
+    
+    # GetTableName() method - always generate this
+    methods.append(f"    inline Static StdString GetTableName() {{")
+    methods.append(f'        return "{class_name}";')
+    methods.append(f"    }}")
+    
+    return "\n".join(methods)
+
+
+def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]], validation_fields_by_macro: Dict[str, List[Dict[str, str]]] = None, id_fields: List[Dict[str, str]] = None) -> str:
+    """Generate Serialize() and Deserialize() methods for an Entity class, plus primary key methods."""
     if validation_fields_by_macro is None:
         validation_fields_by_macro = {}
+    if id_fields is None:
+        id_fields = []
     code_lines = []
     
     # Generate Serialize() method
@@ -314,6 +372,14 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
     code_lines.append("")
     code_lines.append("        return obj;")
     code_lines.append("    }")
+    code_lines.append("")
+    
+    # Always generate primary key methods after serialization methods
+    code_lines.append("    // Primary key methods")
+    primary_key_methods = generate_primary_key_methods(class_name, id_fields)
+    # Split the primary key methods string into lines and append each line
+    for line in primary_key_methods.split('\n'):
+        code_lines.append(line)
     
     return "\n".join(code_lines)
 
@@ -393,7 +459,7 @@ def inject_methods_into_class(file_path: str, class_name: str, methods_code: str
     closing_line_idx = end_line - 1
     
     class_content = ''.join(lines[start_line - 1:end_line])
-    if 'Serialize()' in class_content and 'Deserialize(' in class_content:
+    if 'Serialize()' in class_content and 'Deserialize(' in class_content and 'GetPrimaryKey()' in class_content:
         return True
     
     if dry_run:
@@ -461,13 +527,19 @@ def main():
     optional_fields = [field for field in fields if is_optional_type(field['type'].strip())]
     has_optional_fields = len(optional_fields) > 0
     
+    # Extract @Id fields for primary key methods
+    try:
+        id_fields = extract_id_fields(args.file_path, class_name)
+    except Exception:
+        id_fields = []
+    
     validation_macros = S6_discover_validation_macros.find_validation_macro_definitions(None)
     
     validation_fields_by_macro = S7_extract_validation_fields.extract_validation_fields(
         args.file_path, class_name, validation_macros
     )
     
-    methods_code = generate_serialization_methods(class_name, fields, validation_fields_by_macro)
+    methods_code = generate_serialization_methods(class_name, fields, validation_fields_by_macro, id_fields)
     
     if not args.dry_run:
         if has_optional_fields:

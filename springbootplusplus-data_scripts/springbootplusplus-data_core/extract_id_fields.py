@@ -137,13 +137,14 @@ def check_has_serializable_macro(file_path: str, serializable_macro: str = "_Ent
         for line_num, line in enumerate(lines, 1):
             stripped_line = line.strip()
             
-            # Check if line is already processed (/* @Entity */ or /* @Serializable */)
-            if re.search(processed_pattern, stripped_line):
-                continue
-            
             # Check for annotation (/// @Entity or ///@Entity or /// @Serializable or ///@Serializable)
             annotation_match = re.search(annotation_pattern, stripped_line)
-            if annotation_match:
+            
+            # Also check for processed annotation (/* @Entity */ or /* @Serializable */)
+            processed_match = re.search(processed_pattern, stripped_line)
+            
+            # Use either unprocessed or processed annotation
+            if annotation_match or processed_match:
                 for i in range(line_num, min(line_num + 11, len(lines) + 1)):
                     if i <= len(lines):
                         next_line = lines[i - 1].strip()

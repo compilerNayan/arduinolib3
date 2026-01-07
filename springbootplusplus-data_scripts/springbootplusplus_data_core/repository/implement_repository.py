@@ -49,7 +49,7 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
         return CpaRepositoryImpl<Entity, ID>::Save(entity);
     }}
 
-    Public Virtual optional<Entity> FindById(ID& id) override {{
+    Public Virtual optional<Entity> FindById(ID id) override {{
         return CpaRepositoryImpl<Entity, ID>::FindById(id);
     }}
 
@@ -61,7 +61,7 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
         return CpaRepositoryImpl<Entity, ID>::Update(entity);
     }}
 
-    Public Virtual Void DeleteById(ID& id) override {{
+    Public Virtual Void DeleteById(ID id) override {{
         CpaRepositoryImpl<Entity, ID>::DeleteById(id);
     }}
 
@@ -69,7 +69,7 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
         CpaRepositoryImpl<Entity, ID>::Delete(entity);
     }}
 
-    Public Virtual Bool ExistsById(ID& id) override {{
+    Public Virtual Bool ExistsById(ID id) override {{
         return CpaRepositoryImpl<Entity, ID>::ExistsById(id);
     }}
 
@@ -107,7 +107,7 @@ class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryI
         return CpaRepositoryImpl<{entity_type}, {id_type}>::Save(entity);
     }}
 
-    Public Virtual optional<{entity_type}> FindById({id_type}& id) override {{
+    Public Virtual optional<{entity_type}> FindById({id_type} id) override {{
         return CpaRepositoryImpl<{entity_type}, {id_type}>::FindById(id);
     }}
 
@@ -119,7 +119,7 @@ class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryI
         return CpaRepositoryImpl<{entity_type}, {id_type}>::Update(entity);
     }}
 
-    Public Virtual Void DeleteById({id_type}& id) override {{
+    Public Virtual Void DeleteById({id_type} id) override {{
         CpaRepositoryImpl<{entity_type}, {id_type}>::DeleteById(id);
     }}
 
@@ -127,7 +127,7 @@ class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryI
         CpaRepositoryImpl<{entity_type}, {id_type}>::Delete(entity);
     }}
 
-    Public Virtual Bool ExistsById({id_type}& id) override {{
+    Public Virtual Bool ExistsById({id_type} id) override {{
         return CpaRepositoryImpl<{entity_type}, {id_type}>::ExistsById(id);
     }}
 

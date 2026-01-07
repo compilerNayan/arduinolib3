@@ -128,7 +128,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     }
 
     // Read: Find entity by ID
-    Public Virtual optional<Entity> FindById(ID& id) override {
+    Public Virtual optional<Entity> FindById(ID id) override {
         // Construct file path
         StdString filePath = GetFilePath(id);
         
@@ -223,7 +223,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     }
 
     // Delete: Delete entity by ID
-    Public Virtual Void DeleteById(ID& id) override {
+    Public Virtual Void DeleteById(ID id) override {
         // Construct file path
         StdString filePath = GetFilePath(id);
         
@@ -254,7 +254,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     }
 
     // Check if entity exists by ID
-    Public Virtual Bool ExistsById(ID& id) override {
+    Public Virtual Bool ExistsById(ID id) override {
         // Check if the entity file exists (more reliable than checking IDs file)
         StdString filePath = GetFilePath(id);
         CStdString filePathRef = filePath;

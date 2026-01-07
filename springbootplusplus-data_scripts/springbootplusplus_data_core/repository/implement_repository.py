@@ -161,7 +161,7 @@ class {impl_class_name} : public {class_name}, public CpaRepositoryImpl<{entity_
     return code
 
 
-def implement_repository(file_path: str, library_dir: str, dry_run: bool = False) -> bool:
+def implement_repository(file_path: str, library_dir: str, dry_run: bool = False, repository_info: Optional[Tuple[str, str, str, bool]] = None) -> bool:
     """
     Implement a repository class if @Repository annotation is found.
     
@@ -169,6 +169,8 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
         file_path: Path to the source file to check
         library_dir: Path to the library directory (where src/repository folder should be)
         dry_run: If True, don't actually create the file
+        repository_info: Optional pre-extracted repository info tuple (class_name, entity_type, id_type, is_templated)
+                       If provided, skips detection step
         
     Returns:
         True if implementation was created or would be created, False otherwise
@@ -177,12 +179,17 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
     if "MyEntityRepository" in file_path:
         print(f"DEBUG implement_repository: file_path: {file_path}")
         print(f"DEBUG implement_repository: library_dir: {library_dir}")
+        print(f"DEBUG implement_repository: repository_info provided: {repository_info is not None}")
     
-    # Detect repository in the file
-    result = detect_repository(file_path)
-    
-    if "MyEntityRepository" in file_path:
-        print(f"DEBUG implement_repository: detect_repository returned: {result}")
+    # Use provided info or detect repository in the file
+    if repository_info:
+        result = repository_info
+        if "MyEntityRepository" in file_path:
+            print(f"DEBUG implement_repository: Using provided repository_info: {result}")
+    else:
+        result = detect_repository(file_path)
+        if "MyEntityRepository" in file_path:
+            print(f"DEBUG implement_repository: detect_repository returned: {result}")
     
     if not result:
         return False

@@ -285,7 +285,8 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
         print(f"DEBUG process_repository: impl_file_path.exists(): {impl_file_path.exists()}")
     
     # Try to create the implementation file
-    impl_created = implement_repository(file_path, library_dir, dry_run)
+    # Pass repository_info if we manually extracted it (for processed annotations)
+    impl_created = implement_repository(file_path, library_dir, dry_run, repository_info=result if result else None)
     
     if "MyEntityRepository" in file_path:
         print(f"DEBUG process_repository: implement_repository returned: {impl_created}")

@@ -12,8 +12,8 @@ from pathlib import Path
 def execute_scripts(project_dir, library_dir):
     """
     Execute the scripts to process client files.
-    Uses local serialization scripts to process @Entity annotations
-    and then injects primary key methods.
+    Uses local serialization scripts to process @Entity annotations.
+    Primary key methods are now generated automatically as part of serialization.
     
     Args:
         project_dir: Path to the client project root (where platformio.ini is)
@@ -32,38 +32,8 @@ def execute_scripts(project_dir, library_dir):
     springbootplusplus_data_scripts_dir = current_file.parent
     sys.path.insert(0, str(springbootplusplus_data_scripts_dir))
     
-    # Import get_client_files from local core
-    try:
-        from springbootplusplus_data_core.get_client_files import get_client_files
-        HAS_GET_CLIENT_FILES = True
-    except ImportError:
-        HAS_GET_CLIENT_FILES = False
-    
-    # FIRST: Inject primary key methods BEFORE serializer marks the @Entity annotation as processed
-    try:
-        from springbootplusplus_data_core.inject_primary_key_methods import process_file
-        
-        # Get all client files to process
-        if HAS_GET_CLIENT_FILES and project_dir:
-            client_files = get_client_files(project_dir, file_extensions=['.h', '.cpp'])
-            
-            processed_count = 0
-            for file_path in client_files:
-                try:
-                    if process_file(str(file_path), serializable_macro=serializable_macro, dry_run=False):
-                        processed_count += 1
-                except Exception as e:
-                    pass
-        else:
-            pass
-            
-    except ImportError as e:
-        pass
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-    
-    # THEN: Run the master serializer script (00_process_serializable_classes.py) from local scripts
+    # Run the master serializer script (00_process_serializable_classes.py) from local scripts
+    # This now generates both serialization methods AND primary key methods in one pass
     try:
         # Get the serialization directory
         serialization_dir = springbootplusplus_data_scripts_dir / 'springbootplusplus_data_core' / 'serialization'

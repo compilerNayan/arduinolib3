@@ -173,8 +173,16 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
     Returns:
         True if implementation was created or would be created, False otherwise
     """
+    # Debug: Log when processing MyEntityRepository
+    if "MyEntityRepository" in file_path:
+        print(f"DEBUG implement_repository: file_path: {file_path}")
+        print(f"DEBUG implement_repository: library_dir: {library_dir}")
+    
     # Detect repository in the file
     result = detect_repository(file_path)
+    
+    if "MyEntityRepository" in file_path:
+        print(f"DEBUG implement_repository: detect_repository returned: {result}")
     
     if not result:
         return False
@@ -196,8 +204,14 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
     
     # Check if file already exists
     if impl_file_path.exists():
+        if "MyEntityRepository" in file_path:
+            print(f"DEBUG implement_repository: Implementation file already exists: {impl_file_path}")
         # print(f"⚠️  Implementation file already exists: {impl_file_path}")
         return False
+    
+    if "MyEntityRepository" in file_path:
+        print(f"DEBUG implement_repository: Generating implementation code for {class_name}")
+        print(f"DEBUG implement_repository: entity_type: {entity_type}, id_type: {id_type}, is_templated: {is_templated}")
     
     # Generate the implementation class code
     impl_code = generate_impl_class(class_name, entity_type, id_type, file_path, is_templated)
@@ -211,11 +225,25 @@ def implement_repository(file_path: str, library_dir: str, dry_run: bool = False
     
     # Write the implementation file
     try:
+        if "MyEntityRepository" in file_path:
+            print(f"DEBUG implement_repository: Writing to: {impl_file_path}")
+            print(f"DEBUG implement_repository: repository_dir exists: {repository_dir.exists()}")
+            print(f"DEBUG implement_repository: repository_dir: {repository_dir}")
+        
         with open(impl_file_path, 'w', encoding='utf-8') as f:
             f.write(impl_code)
+        
+        if "MyEntityRepository" in file_path:
+            print(f"DEBUG implement_repository: Successfully created implementation file: {impl_file_path}")
+            print(f"DEBUG implement_repository: File exists after write: {impl_file_path.exists()}")
+        
         # print(f"✓ Created implementation file: {impl_file_path}")
         return True
     except Exception as e:
+        if "MyEntityRepository" in file_path:
+            print(f"DEBUG implement_repository: ERROR creating implementation file: {e}")
+            import traceback
+            traceback.print_exc()
         # print(f"Error creating implementation file: {e}")
         return False
 

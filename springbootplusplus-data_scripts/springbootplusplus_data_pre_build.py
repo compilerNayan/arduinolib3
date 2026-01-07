@@ -471,18 +471,35 @@ try:
                     
                     for file_path in all_header_files:
                         try:
-                            # print(f"Processing file: {file_path}")
+                            # Debug: Check if this is the file we're looking for
+                            if "06-MyEntityRepository" in str(file_path) or "MyEntityRepository" in str(file_path):
+                                print(f"DEBUG: Processing MyEntityRepository file: {file_path}")
+                                print(f"DEBUG: library_dir = {library_dir}")
+                            
                             # Process file for repository implementation
                             # This will detect @Repository annotation, create impl file, and add include
                             result = process_repository(str(file_path), str(library_dir), dry_run=False)
+                            
+                            # Debug: Log result for MyEntityRepository
+                            if "06-MyEntityRepository" in str(file_path) or "MyEntityRepository" in str(file_path):
+                                print(f"DEBUG: process_repository returned: {result}")
+                            
                             if result:
                                 # print(f"  ✓ Repository implementation generated for: {file_path}")
                                 implemented_count += 1
                             else:
+                                # Debug: Check why MyEntityRepository wasn't processed
+                                if "06-MyEntityRepository" in str(file_path) or "MyEntityRepository" in str(file_path):
+                                    print(f"DEBUG: Repository not processed for: {file_path}")
                                 # print(f"  - No repository found in: {file_path}")
                                 pass
                             processed_count += 1
                         except Exception as e:
+                            # Debug: Log exception for MyEntityRepository
+                            if "06-MyEntityRepository" in str(file_path) or "MyEntityRepository" in str(file_path):
+                                print(f"DEBUG: Exception processing MyEntityRepository: {e}")
+                                import traceback
+                                traceback.print_exc()
                             # print(f"⚠️  Warning: Error processing {file_path}: {e}")
                             import traceback
                             traceback.print_exc()

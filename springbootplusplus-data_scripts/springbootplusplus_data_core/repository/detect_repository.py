@@ -106,7 +106,18 @@ def detect_repository(file_path: str) -> Optional[Tuple[str, str, str, bool]]:
         return None
     
     # Check if @Repository annotation is present (not processed)
-    if not find_repository_annotation(content):
+    annotation_found = find_repository_annotation(content)
+    
+    # Debug: Log for MyEntityRepository
+    if "MyEntityRepository" in file_path:
+        print(f"DEBUG detect_repository: file_path: {file_path}")
+        print(f"DEBUG detect_repository: find_repository_annotation returned: {annotation_found}")
+        # Check for processed annotation
+        processed_pattern = r'/\*\s*@Repository\s*\*/'
+        has_processed = bool(re.search(processed_pattern, content))
+        print(f"DEBUG detect_repository: Has processed annotation (/* @Repository */): {has_processed}")
+    
+    if not annotation_found:
         return None
     
     # Extract class name from DefineStandardPointers

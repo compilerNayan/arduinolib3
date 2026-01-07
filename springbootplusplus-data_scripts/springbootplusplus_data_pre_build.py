@@ -375,19 +375,11 @@ else:
 # print(f"{'=' * 60}")
 
 try:
-    # Try to import get_client_files from serializationlib
-    # First, find serializationlib_scripts
-    from springbootplusplus_data_execute_scripts import find_library_scripts
-    serializationlib_scripts_dir = find_library_scripts("serializationlib_scripts")
-    
-    if serializationlib_scripts_dir:
-        sys.path.insert(0, str(serializationlib_scripts_dir))
-        try:
-            from serializationlib_core.serializationlib_get_client_files import get_client_files
-            HAS_GET_CLIENT_FILES = True
-        except ImportError:
-            HAS_GET_CLIENT_FILES = False
-    else:
+    # Try to import get_client_files from local core
+    try:
+        from springbootplusplus_data_core.get_client_files import get_client_files
+        HAS_GET_CLIENT_FILES = True
+    except ImportError:
         HAS_GET_CLIENT_FILES = False
     
     # Get all library directories

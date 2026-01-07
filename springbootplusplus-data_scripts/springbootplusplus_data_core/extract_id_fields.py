@@ -35,51 +35,12 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 parent_scripts_dir = os.path.dirname(script_dir)
 sys.path.insert(0, parent_scripts_dir)
 
-# Try to import from serializationlib scripts
+# Try to import from local serialization scripts
 try:
-    # Find serializationlib_scripts directory
-    def find_serializationlib_scripts():
-        """Find serializationlib_scripts directory."""
-        search_paths = []
-        
-        # Add current working directory
-        search_paths.append(Path(os.getcwd()))
-        
-        # Add project directory if available
-        project_dir = os.environ.get("CMAKE_PROJECT_DIR") or os.environ.get("PROJECT_DIR")
-        if project_dir:
-            search_paths.append(Path(project_dir))
-            
-            # Check build/_deps/serializationlib-src/serializationlib_scripts
-            build_deps = Path(project_dir) / "build" / "_deps" / "serializationlib-src" / "serializationlib_scripts"
-            if build_deps.exists() and build_deps.is_dir():
-                return build_deps
-        
-        # Check current file's parent directories
-        current = Path(script_dir).resolve()
-        for _ in range(10):
-            # Check in build/_deps/serializationlib-src/
-            deps_path = current / "build" / "_deps" / "serializationlib-src" / "serializationlib_scripts"
-            if deps_path.exists() and deps_path.is_dir():
-                return deps_path
-            
-            # Check sibling directories
-            parent = current.parent
-            if parent.name == "_deps":
-                lib_src = parent / "serializationlib-src" / "serializationlib_scripts"
-                if lib_src.exists() and lib_src.is_dir():
-                    return lib_src
-            
-            if parent == current:
-                break
-            current = parent
-        
-        return None
-    
-    serializationlib_scripts_dir = find_serializationlib_scripts()
-    if serializationlib_scripts_dir:
-        sys.path.insert(0, str(serializationlib_scripts_dir))
-        sys.path.insert(0, str(serializationlib_scripts_dir / "serializationlib_serializer"))
+    # Find local serialization scripts directory
+    serialization_dir = Path(script_dir) / "serialization"
+    if serialization_dir.exists():
+        sys.path.insert(0, str(serialization_dir))
         
         try:
             import S1_check_dto_macro
@@ -87,13 +48,10 @@ try:
             import S6_discover_validation_macros
             HAS_SERIALIZATIONLIB = True
         except ImportError as e:
-            # print(f"Warning: Could not import serializationlib modules: {e}")
             HAS_SERIALIZATIONLIB = False
     else:
-        # print("Warning: Could not find serializationlib_scripts directory")
         HAS_SERIALIZATIONLIB = False
 except Exception as e:
-    # print(f"Warning: Error setting up serializationlib imports: {e}")
     HAS_SERIALIZATIONLIB = False
 
 

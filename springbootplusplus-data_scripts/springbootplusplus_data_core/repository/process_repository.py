@@ -217,6 +217,48 @@ def process_repository(file_path: str, library_dir: str, dry_run: bool = False) 
     if "MyEntityRepository" in file_path:
         print(f"DEBUG process_repository: detect_repository returned: {result}")
     
+    # If annotation is already processed, check if implementation file exists
+    # If it doesn't exist, we need to reprocess it
+    if not result:
+        # Check if annotation is processed but file is missing
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            processed_pattern = r'/\*\s*@Repository\s*\*/'
+            if re.search(processed_pattern, content):
+                # Annotation is processed, check if file exists
+                class_name_match = re.search(r'DefineStandardPointers\s*\(\s*(\w+)\s*\)', content)
+                if class_name_match:
+                    class_name = class_name_match.group(1)
+                    repository_dir = Path(library_dir) / "src" / "repository"
+                    impl_file_path = repository_dir / f"{class_name}Impl.h"
+                    
+                    if "MyEntityRepository" in file_path:
+                        print(f"DEBUG process_repository: Annotation is processed, checking if impl exists: {impl_file_path}")
+                        print(f"DEBUG process_repository: impl_file_path.exists(): {impl_file_path.exists()}")
+                    
+                    if not impl_file_path.exists():
+                        if "MyEntityRepository" in file_path:
+                            print(f"DEBUG process_repository: ERROR - Annotation marked as processed but impl file missing!")
+                            print(f"DEBUG process_repository: This indicates file creation failed in a previous run")
+                            print(f"DEBUG process_repository: Will attempt to create file now by treating as unprocessed")
+                        # Reprocess by temporarily changing annotation back
+                        # But first, let's see if we can detect it anyway
+                        # Actually, let's just manually extract the info and create the file
+                        content_no_comments = re.sub(r'//.*?$', '', content, flags=re.MULTILINE)
+                        content_no_comments = re.sub(r'/\*.*?\*/', '', content_no_comments, flags=re.DOTALL)
+                        template_match = re.search(rf'class\s+{re.escape(class_name)}\s+(?:final\s+)?:\s*public\s+(?:virtual\s+)?CpaRepository\s*<\s*([^,<>]+)\s*,\s*([^,<>]+)\s*>', content_no_comments)
+                        if template_match:
+                            entity_type = template_match.group(1).strip()
+                            id_type = template_match.group(2).strip()
+                            is_templated = bool(re.search(rf'template\s*<\s*[^>]+\s*>\s*class\s+{re.escape(class_name)}', content_no_comments))
+                            result = (class_name, entity_type, id_type, is_templated)
+                            if "MyEntityRepository" in file_path:
+                                print(f"DEBUG process_repository: Manually extracted info: {result}")
+        except Exception as e:
+            if "MyEntityRepository" in file_path:
+                print(f"DEBUG process_repository: Exception checking processed annotation: {e}")
+    
     if not result:
         return False
     

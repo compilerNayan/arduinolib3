@@ -265,17 +265,14 @@ def process_file(file_path: str, serializable_macro: str = "_Entity", dry_run: b
         True if successful, False otherwise
     """
     # Debug: Check if this is MyEntity
-    file_path_str = str(file_path)
-    is_my_entity = "MyEntity" in file_path_str and ("05-MyEntity" in file_path_str or "MyEntity.h" in file_path_str)
+    is_my_entity = "MyEntity" in str(file_path) and ("05-MyEntity" in str(file_path) or "MyEntity.h" in str(file_path))
     
     if is_my_entity:
         print(f"DEBUG process_file: Processing file: {file_path}")
         print(f"DEBUG process_file: serializable_macro: {serializable_macro}")
         print(f"DEBUG process_file: HAS_EXTRACT_ID: {HAS_EXTRACT_ID}")
-    elif "MyEntity" in file_path_str:
+    elif "MyEntity" in str(file_path):
         print(f"DEBUG process_file: MyEntity file found but condition not fully matched: {file_path}")
-        print(f"DEBUG process_file: file_path_str contains '05-MyEntity': {'05-MyEntity' in file_path_str}")
-        print(f"DEBUG process_file: file_path_str contains 'MyEntity.h': {'MyEntity.h' in file_path_str}")
     
     if not HAS_EXTRACT_ID:
         if is_my_entity:

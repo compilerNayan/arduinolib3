@@ -17,6 +17,7 @@ parent_scripts_dir = os.path.dirname(os.path.dirname(script_dir))
 sys.path.insert(0, str(script_dir))
 
 from detect_repository import detect_repository
+from generate_repository_implementation import generate_repository_implementation
 
 
 def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_file_path: str, is_templated: bool = True) -> str:
@@ -42,10 +43,10 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
     
     repository_ptr = f"{class_name}Ptr"
     
-    # Generate method implementations that delegate to CpaRepositoryImpl
+    # Generate base method implementations that delegate to CpaRepositoryImpl
     if is_templated:
         # Templated repository: use template parameters
-        method_implementations = f"""    Public Virtual Entity Save(Entity& entity) override {{
+        base_method_implementations = f"""    Public Virtual Entity Save(Entity& entity) override {{
         return CpaRepositoryImpl<Entity, ID>::Save(entity);
     }}
 
@@ -71,7 +72,26 @@ def generate_impl_class(class_name: str, entity_type: str, id_type: str, source_
 
     Public Virtual Bool ExistsById(ID id) override {{
         return CpaRepositoryImpl<Entity, ID>::ExistsById(id);
-    }}
+    }}"""
+        
+        # Generate custom method implementations (FindBy, DeleteBy, etc.)
+        custom_method_implementations = None
+        try:
+            if os.path.exists(source_file_path):
+                custom_method_implementations = generate_repository_implementation(source_file_path)
+        except Exception as e:
+            # If custom method generation fails, continue with base methods only
+            # print(f"Warning: Could not generate custom methods: {e}", file=sys.stderr)
+            pass
+        
+        if custom_method_implementations:
+            # Add custom methods after base methods
+            method_implementations = base_method_implementations + "\n\n" + custom_method_implementations
+        else:
+            method_implementations = base_method_implementations
+        
+        # Add GetInstance and template specializations
+        method_implementations += f"""
 
     Public Static {repository_ptr} GetInstance() {{
         static {repository_ptr} instance(new {impl_class_name}<Entity, ID>());
@@ -103,7 +123,7 @@ class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryI
 """
     else:
         # Non-templated repository: use concrete types
-        method_implementations = f"""    Public Virtual {entity_type} Save({entity_type}& entity) override {{
+        base_method_implementations = f"""    Public Virtual {entity_type} Save({entity_type}& entity) override {{
         return CpaRepositoryImpl<{entity_type}, {id_type}>::Save(entity);
     }}
 
@@ -129,7 +149,26 @@ class {impl_class_name} : public {class_name}<Entity, ID>, public CpaRepositoryI
 
     Public Virtual Bool ExistsById({id_type} id) override {{
         return CpaRepositoryImpl<{entity_type}, {id_type}>::ExistsById(id);
-    }}
+    }}"""
+        
+        # Generate custom method implementations (FindBy, DeleteBy, etc.)
+        custom_method_implementations = None
+        try:
+            if os.path.exists(source_file_path):
+                custom_method_implementations = generate_repository_implementation(source_file_path)
+        except Exception as e:
+            # If custom method generation fails, continue with base methods only
+            # print(f"Warning: Could not generate custom methods: {e}", file=sys.stderr)
+            pass
+        
+        if custom_method_implementations:
+            # Add custom methods after base methods
+            method_implementations = base_method_implementations + "\n\n" + custom_method_implementations
+        else:
+            method_implementations = base_method_implementations
+        
+        # Add GetInstance and template specializations
+        method_implementations += f"""
 
     Public Static {repository_ptr} GetInstance() {{
         static {repository_ptr} instance(new {impl_class_name}());

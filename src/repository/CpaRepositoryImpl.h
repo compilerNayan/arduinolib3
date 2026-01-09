@@ -21,15 +21,13 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Private template function to convert ID to string
     // Handles both string types and primitive types
+    // Since StdString is a typedef for std::string, we check for std::string
     Private template<typename T>
     StdString ConvertToString(const T& value) {
-        // Check if T is a string type
-        if constexpr (std::is_same_v<T, StdString>) {
-            // For StdString, return as is
+        // Check if T is a string type (StdString is std::string, so check for std::string)
+        if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, StdString>) {
+            // For string types, return as StdString (which is std::string)
             return value;
-        } else if constexpr (std::is_same_v<T, std::string>) {
-            // For std::string, convert to StdString
-            return StdString(value.c_str());
         } else {
             // For primitive types (int, float, double, etc.), use std::to_string
             return StdString(std::to_string(value).c_str());

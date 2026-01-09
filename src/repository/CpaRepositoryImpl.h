@@ -18,6 +18,24 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     /// @Autowired
     IFileManagerPtr fileManager;
 
+    // Private template function to convert ID to string
+    // Handles both string types and primitive types
+    Private template<typename T>
+    StdString ConvertToString(const T& value) {
+        // For primitive types (int, float, double, etc.), use std::to_string
+        return StdString(std::to_string(value).c_str());
+    }
+
+    // Overload for StdString - return as is
+    Private StdString ConvertToString(const StdString& value) {
+        return value;
+    }
+
+    // Overload for std::string - convert to StdString
+    Private StdString ConvertToString(const std::string& value) {
+        return StdString(value.c_str());
+    }
+
     // Helper method to get IDs file path
     Protected StdString GetIdsFilePath() {
         StdString tableName = Entity::GetTableName();
@@ -30,7 +48,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString tableName = Entity::GetTableName();
         // Get primary key name (static method)
         StdString primaryKeyName = Entity::GetPrimaryKeyName();
-        return StdString(DATABASE_PATH) + "/" + tableName + "_" + primaryKeyName + "_" + StdString(std::to_string(id).c_str()) + ".txt";
+        return StdString(DATABASE_PATH) + "/" + tableName + "_" + primaryKeyName + "_" + ConvertToString(id) + ".txt";
     }
 
     // Helper method to read all IDs from the IDs file
@@ -75,7 +93,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString contents;
         
         for (size_t i = 0; i < ids.size(); i++) {
-            contents += StdString(std::to_string(ids[i]).c_str());
+            contents += ConvertToString(ids[i]);
             contents += StdString("\n"); // Always add newline, including after last ID
         }
         
@@ -117,7 +135,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             // Append ID to IDs file if it doesn't already exist
             if (!IdExistsInFile(id)) {
                 StdString idsFilePath = GetIdsFilePath();
-                StdString idStr = StdString(std::to_string(id).c_str()) + StdString("\n");
+                StdString idStr = ConvertToString(id) + StdString("\n");
                 CStdString idsFilePathRef = idsFilePath;
                 CStdString idStrRef = idStr;
                 fileManager->Append(idsFilePathRef, idStrRef);
@@ -145,6 +163,16 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         Entity entity = Entity::Deserialize(contents);
         
         return entity;
+    }
+
+    Public Virtual optional<Entity> FindByLastName(CStdString& someVariableName) override {
+        vector<Entity> entities = FindAll();
+        for (const auto& entity : entities) {
+            if (entity.lastName == someVariableName) {
+                return entity;
+            }
+        }
+        return std::nullopt;
     }
 
     // Read: Find all entities
@@ -200,17 +228,17 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
                 // Ensure we append with proper newline
                 StdString idStr;
                 if (currentContents.empty()) {
-                    idStr = StdString(std::to_string(entityId).c_str()) + StdString("\n");
+                    idStr = ConvertToString(entityId) + StdString("\n");
                 } else {
                     // Check if last character is newline
                     if (currentContents.length() > 0 && 
                         currentContents[currentContents.length() - 1] != '\n' &&
                         currentContents[currentContents.length() - 1] != '\r') {
                         // File doesn't end with newline, add one before appending
-                        idStr = StdString("\n") + StdString(std::to_string(entityId).c_str()) + StdString("\n");
+                        idStr = StdString("\n") + ConvertToString(entityId) + StdString("\n");
                     } else {
                         // File ends with newline, just append ID with newline
-                        idStr = StdString(std::to_string(entityId).c_str()) + StdString("\n");
+                        idStr = ConvertToString(entityId) + StdString("\n");
                     }
                 }
                 

@@ -34,6 +34,35 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         }
     }
 
+    // Private template function to convert string to ID type
+    // Handles both string types and primitive types
+    Private template<typename T>
+    T ConvertFromString(const StdString& str) {
+        // Check if T is a string type
+        if constexpr (std::is_same_v<T, std::string> || std::is_same_v<T, StdString>) {
+            // For string types, return as-is
+            return str;
+        } else if constexpr (std::is_same_v<T, int>) {
+            // For int, use std::stoi
+            return std::stoi(str.c_str());
+        } else if constexpr (std::is_same_v<T, long>) {
+            // For long, use std::stol
+            return std::stol(str.c_str());
+        } else if constexpr (std::is_same_v<T, long long>) {
+            // For long long, use std::stoll
+            return std::stoll(str.c_str());
+        } else if constexpr (std::is_same_v<T, float>) {
+            // For float, use std::stof
+            return std::stof(str.c_str());
+        } else if constexpr (std::is_same_v<T, double>) {
+            // For double, use std::stod
+            return std::stod(str.c_str());
+        } else {
+            // For other types, try static_cast from long long (default behavior)
+            return static_cast<T>(std::stoll(str.c_str()));
+        }
+    }
+
     // Helper method to get IDs file path
     Protected StdString GetIdsFilePath() {
         StdString tableName = Entity::GetTableName();
@@ -66,8 +95,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
             char c = contents[i];
             if (c == '\n' || c == '\r') {
                 if (!currentId.empty()) {
-                    // Convert string to ID
-                    ID id = static_cast<ID>(std::stoll(currentId.c_str()));
+                    // Convert string to ID using template function
+                    ID id = ConvertFromString<ID>(currentId);
                     ids.push_back(id);
                     currentId.clear();
                 }
@@ -78,7 +107,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         
         // Handle last ID if file doesn't end with newline
         if (!currentId.empty()) {
-            ID id = static_cast<ID>(std::stoll(currentId.c_str()));
+            ID id = ConvertFromString<ID>(currentId);
             ids.push_back(id);
         }
         

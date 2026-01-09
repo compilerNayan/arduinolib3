@@ -162,17 +162,6 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         
         return entity;
     }
-
-    Public Virtual optional<Entity> FindByLastName(CStdString& someVariableName) override {
-        vector<Entity> entities = FindAll();
-        for (const auto& entity : entities) {
-            if (entity.lastName == someVariableName) {
-                return entity;
-            }
-        }
-        return std::nullopt;
-    }
-
     // Read: Find all entities
     Public Virtual vector<Entity> FindAll() override {
         vector<Entity> entities;

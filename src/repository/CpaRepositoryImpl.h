@@ -4,6 +4,7 @@
 #include "../CpaRepository.h"
 #include "../IFileManager.h"
 #include <optional>
+#include <type_traits>
 
 #ifdef ARDUINO
 #define DATABASE_PATH ""
@@ -22,18 +23,17 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Handles both string types and primitive types
     Private template<typename T>
     StdString ConvertToString(const T& value) {
-        // For primitive types (int, float, double, etc.), use std::to_string
-        return StdString(std::to_string(value).c_str());
-    }
-
-    // Overload for StdString - return as is
-    Private StdString ConvertToString(const StdString& value) {
-        return value;
-    }
-
-    // Overload for std::string - convert to StdString
-    Private StdString ConvertToString(const std::string& value) {
-        return StdString(value.c_str());
+        // Check if T is a string type
+        if constexpr (std::is_same_v<T, StdString>) {
+            // For StdString, return as is
+            return value;
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            // For std::string, convert to StdString
+            return StdString(value.c_str());
+        } else {
+            // For primitive types (int, float, double, etc.), use std::to_string
+            return StdString(std::to_string(value).c_str());
+        }
     }
 
     // Helper method to get IDs file path

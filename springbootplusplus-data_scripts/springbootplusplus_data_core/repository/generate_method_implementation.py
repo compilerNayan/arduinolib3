@@ -93,7 +93,8 @@ def parse_function_signature(signature: str) -> Tuple[Optional[str], Optional[st
 
 
 def generate_find_implementation(access_modifier: str, return_type: str, method_name: str, 
-                                 parameter_declaration: str, variable_name: str, parameter_name: str) -> str:
+                                 parameter_declaration: str, variable_name: str, parameter_name: str, 
+                                 entity_type: str = "Entity") -> str:
     """
     Generate implementation code for Find action.
     
@@ -117,9 +118,9 @@ def generate_find_implementation(access_modifier: str, return_type: str, method_
     
     # Generate implementation based on return type
     if is_optional:
-        # Return optional<Entity> - find first match
+        # Return optional<EntityType> - find first match
         code = f"""{method_signature}
-        vector<Entity> entities = FindAll();
+        vector<{entity_type}> entities = FindAll();
         for (const auto& entity : entities) {{
             if (entity.{variable_name} == {parameter_name}) {{
                 return entity;
@@ -128,10 +129,10 @@ def generate_find_implementation(access_modifier: str, return_type: str, method_
         return std::nullopt;
     }}"""
     elif is_vector:
-        # Return vector<Entity> - find all matches
+        # Return vector<EntityType> - find all matches
         code = f"""{method_signature}
-        vector<Entity> entities = FindAll();
-        vector<Entity> result;
+        vector<{entity_type}> entities = FindAll();
+        vector<{entity_type}> result;
         for (const auto& entity : entities) {{
             if (entity.{variable_name} == {parameter_name}) {{
                 result.push_back(entity);
@@ -140,23 +141,23 @@ def generate_find_implementation(access_modifier: str, return_type: str, method_
         return result;
     }}"""
     else:
-        # Return single Entity - find first match (may need to handle not found case)
+        # Return single EntityType - find first match (may need to handle not found case)
         code = f"""{method_signature}
-        vector<Entity> entities = FindAll();
+        vector<{entity_type}> entities = FindAll();
         for (const auto& entity : entities) {{
             if (entity.{variable_name} == {parameter_name}) {{
                 return entity;
             }}
         }}
         // TODO: Handle case when entity not found
-        return Entity();
+        return {entity_type}();
     }}"""
     
     return code
 
 
 def generate_method_implementation(action: str, variable_name: str, parameter_name: str, 
-                                  function_signature: str) -> Optional[str]:
+                                  function_signature: str, entity_type: str = "Entity") -> Optional[str]:
     """
     Generate C++ method implementation code.
     
@@ -189,7 +190,7 @@ def generate_method_implementation(action: str, variable_name: str, parameter_na
     if action.lower() == "find":
         return generate_find_implementation(access_modifier or "Public Virtual", return_type, 
                                            method_name, parameter_declaration or "", 
-                                           variable_name, parameter_name)
+                                           variable_name, parameter_name, entity_type)
     else:
         # Other actions not yet implemented
         return None

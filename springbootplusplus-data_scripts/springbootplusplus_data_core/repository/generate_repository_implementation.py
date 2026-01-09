@@ -33,6 +33,7 @@ from extract_repository_methods import extract_repository_methods
 from extract_findby_variable_name import extract_findby_variable_name
 from extract_method_action import extract_method_action
 from extract_parameter_name import extract_parameter_name
+from extract_entity_type import extract_entity_type
 from generate_method_implementation import generate_method_implementation
 
 
@@ -133,6 +134,12 @@ def generate_repository_implementation(repository_file: str) -> Optional[str]:
     Returns:
         Complete implementation code for all custom methods, or None on error
     """
+    # Extract entity type from repository
+    entity_type = extract_entity_type(repository_file)
+    if not entity_type:
+        # Default to Entity if extraction fails
+        entity_type = "Entity"
+    
     # Extract all methods from repository
     method_names = extract_repository_methods(repository_file)
     if not method_names:
@@ -149,12 +156,13 @@ def generate_repository_implementation(repository_file: str) -> Optional[str]:
         
         action, variable_name, parameter_name, method_declaration = method_info
         
-        # Generate implementation code
+        # Generate implementation code with entity type
         code = generate_method_implementation(
             action, 
             variable_name, 
             parameter_name, 
-            method_declaration
+            method_declaration,
+            entity_type
         )
         
         if code:

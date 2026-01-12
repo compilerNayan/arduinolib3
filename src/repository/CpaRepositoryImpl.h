@@ -79,8 +79,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     }
 
     // Helper method to read all IDs from the IDs file
-    Protected vector<ID> ReadAllIds() {
-        vector<ID> ids;
+    Protected Vector<ID> ReadAllIds() {
+        Vector<ID> ids;
         StdString idsFilePath = GetIdsFilePath();
         CStdString idsFilePathRef = idsFilePath;
         StdString contents = fileManager->Read(idsFilePathRef);
@@ -115,7 +115,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     }
 
     // Helper method to write all IDs to the IDs file
-    Protected Void WriteAllIds(const vector<ID>& ids) {
+    Protected Void WriteAllIds(const Vector<ID>& ids) {
         StdString idsFilePath = GetIdsFilePath();
         StdString contents;
         
@@ -131,7 +131,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Helper method to check if ID exists in the IDs file
     Protected Bool IdExistsInFile(ID id) {
-        vector<ID> ids = ReadAllIds();
+        Vector<ID> ids = ReadAllIds();
         for (const auto& existingId : ids) {
             if (existingId == id) {
                 return true;
@@ -192,11 +192,11 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         return entity;
     }
     // Read: Find all entities
-    Public Virtual vector<Entity> FindAll() override {
-        vector<Entity> entities;
+    Public Virtual Vector<Entity> FindAll() override {
+        Vector<Entity> entities;
         
         // Read all IDs from the IDs file
-        vector<ID> ids = ReadAllIds();
+        Vector<ID> ids = ReadAllIds();
         
         // For each ID, read and deserialize the entity
         for (const auto& id : ids) {
@@ -276,8 +276,8 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         fileManager->Delete(filePathRef);
         
         // Remove ID from IDs file
-        vector<ID> ids = ReadAllIds();
-        vector<ID> updatedIds;
+        Vector<ID> ids = ReadAllIds();
+        Vector<ID> updatedIds;
         for (const auto& existingId : ids) {
             if (existingId != id) {
                 updatedIds.push_back(existingId);

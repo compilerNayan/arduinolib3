@@ -131,20 +131,10 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Helper method to check if ID exists in the IDs file
     Protected Bool IdExistsInFile(ID id) {
-        // For string-based IDs, use case-sensitive comparison
-        // For non-string IDs, use direct comparison
         Vector<ID> ids = ReadAllIds();
         for (const auto& existingId : ids) {
-            if constexpr (std::is_same_v<ID, std::string> || std::is_same_v<ID, StdString>) {
-                // Case-sensitive string comparison
-                if (existingId == id) {
-                    return true;
-                }
-            } else {
-                // Direct comparison for non-string types
-                if (existingId == id) {
-                    return true;
-                }
+            if (existingId == id) {
+                return true;
             }
         }
         return false;
@@ -184,41 +174,22 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Read: Find entity by ID
     Public Virtual optional<Entity> FindById(ID id) override {
-        // For string-based IDs, use case-sensitive matching to avoid filesystem case-insensitivity issues
-        // (especially on macOS where filesystems are case-insensitive by default)
-        if constexpr (std::is_same_v<ID, std::string> || std::is_same_v<ID, StdString>) {
-            // Get all entities and do case-sensitive comparison
-            Vector<Entity> allEntities = FindAll();
-            
-            // Search for exact case-sensitive match
-            for (const auto& entity : allEntities) {
-                optional<ID> entityId = entity.GetPrimaryKey();
-                if (entityId.has_value() && entityId.value() == id) {
-                    return entity;
-                }
-            }
-            
-            // Not found
+        // Construct file path
+        StdString filePath = GetFilePath(id);
+        
+        // Read file contents
+        CStdString filePathRef = filePath;
+        StdString contents = fileManager->Read(filePathRef);
+        
+        // Check if file was read successfully (non-empty content)
+        if (contents.empty()) {
             return std::nullopt;
-        } else {
-            // For non-string IDs (int, long, etc.), use file-based lookup
-            // Construct file path
-            StdString filePath = GetFilePath(id);
-            
-            // Read file contents
-            CStdString filePathRef = filePath;
-            StdString contents = fileManager->Read(filePathRef);
-            
-            // Check if file was read successfully (non-empty content)
-            if (contents.empty()) {
-                return std::nullopt;
-            }
-            
-            // Deserialize entity (Deserialize is a static method)
-            Entity entity = Entity::Deserialize(contents);
-            
-            return entity;
         }
+        
+        // Deserialize entity (Deserialize is a static method)
+        Entity entity = Entity::Deserialize(contents);
+        
+        return entity;
     }
     // Read: Find all entities
     Public Virtual Vector<Entity> FindAll() override {
@@ -297,51 +268,22 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Delete: Delete entity by ID
     Public Virtual Void DeleteById(ID id) override {
-        // For string-based IDs, find the entity first to get the exact case-matched file path
-        if constexpr (std::is_same_v<ID, std::string> || std::is_same_v<ID, StdString>) {
-            // Find the entity with case-sensitive matching
-            optional<Entity> entity = FindById(id);
-            if (entity.has_value()) {
-                // Get the exact ID from the entity (with correct case)
-                optional<ID> exactId = entity.value().GetPrimaryKey();
-                if (exactId.has_value()) {
-                    // Use the exact ID to construct the file path
-                    StdString filePath = GetFilePath(exactId.value());
-                    
-                    // Delete file using file manager
-                    CStdString filePathRef = filePath;
-                    fileManager->Delete(filePathRef);
-                    
-                    // Remove ID from IDs file
-                    Vector<ID> ids = ReadAllIds();
-                    Vector<ID> updatedIds;
-                    for (const auto& existingId : ids) {
-                        if (existingId != exactId.value()) {
-                            updatedIds.push_back(existingId);
-                        }
-                    }
-                    WriteAllIds(updatedIds);
-                }
+        // Construct file path
+        StdString filePath = GetFilePath(id);
+        
+        // Delete file using file manager
+        CStdString filePathRef = filePath;
+        fileManager->Delete(filePathRef);
+        
+        // Remove ID from IDs file
+        Vector<ID> ids = ReadAllIds();
+        Vector<ID> updatedIds;
+        for (const auto& existingId : ids) {
+            if (existingId != id) {
+                updatedIds.push_back(existingId);
             }
-        } else {
-            // For non-string IDs, use direct file-based deletion
-            // Construct file path
-            StdString filePath = GetFilePath(id);
-            
-            // Delete file using file manager
-            CStdString filePathRef = filePath;
-            fileManager->Delete(filePathRef);
-            
-            // Remove ID from IDs file
-            Vector<ID> ids = ReadAllIds();
-            Vector<ID> updatedIds;
-            for (const auto& existingId : ids) {
-                if (existingId != id) {
-                    updatedIds.push_back(existingId);
-                }
-            }
-            WriteAllIds(updatedIds);
         }
+        WriteAllIds(updatedIds);
     }
 
     // Delete: Delete an entity
@@ -357,18 +299,11 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Check if entity exists by ID
     Public Virtual Bool ExistsById(ID id) override {
-        // For string-based IDs, use case-sensitive matching
-        if constexpr (std::is_same_v<ID, std::string> || std::is_same_v<ID, StdString>) {
-            // Use FindById which does case-sensitive matching
-            optional<Entity> entity = FindById(id);
-            return entity.has_value();
-        } else {
-            // For non-string IDs, check if the entity file exists
-            StdString filePath = GetFilePath(id);
-            CStdString filePathRef = filePath;
-            StdString contents = fileManager->Read(filePathRef);
-            return !contents.empty();
-        }
+        // Check if the entity file exists (more reliable than checking IDs file)
+        StdString filePath = GetFilePath(id);
+        CStdString filePathRef = filePath;
+        StdString contents = fileManager->Read(filePathRef);
+        return !contents.empty();
     }
 };
 

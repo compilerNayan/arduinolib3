@@ -9,7 +9,7 @@
 #ifdef ARDUINO
 #define DATABASE_PATH ""
 #else
-#define DATABASE_PATH "/Users/nkurude/db"
+#define DATABASE_PATH "/Users/nkurude/db/"
 #endif
 
 template<typename Entity, typename ID>
@@ -66,7 +66,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Helper method to get IDs file path
     Protected StdString GetIdsFilePath() {
         StdString tableName = Entity::GetTableName();
-        return StdString(DATABASE_PATH) + "/" + tableName + "_IDs.txt";
+        return StdString(DATABASE_PATH) + tableName + "_IDs";
     }
 
     // Helper method to construct file path
@@ -75,7 +75,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString tableName = Entity::GetTableName();
         // Get primary key name (static method)
         StdString primaryKeyName = Entity::GetPrimaryKeyName();
-        return StdString(DATABASE_PATH) + "/" + tableName + "_" + primaryKeyName + "_" + ConvertToString(id) + ".txt";
+        return StdString(DATABASE_PATH) + tableName + "_" + primaryKeyName + "_" + ConvertToString(id);
     }
 
     // Helper method to read all IDs from the IDs file
@@ -148,7 +148,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         if(generatedId.has_value()) {
             ID id = generatedId.value();
             
-            // Construct file path: DATABASE_PATH/TableName_PrimaryKeyName_ID.txt
+            // Construct file path: DATABASE_PATH/TableName_PrimaryKeyName_ID
             StdString filePath = GetFilePath(id);
             
             // Serialize entity (non-static method)

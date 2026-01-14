@@ -18,7 +18,7 @@ template<typename Entity, typename ID>
 class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     Public Virtual ~CpaRepositoryImpl() = default;
 
-    /// @Autowired
+    /* @Autowired */
     IFileManagerPtr fileManager;
 
     // Private template function to convert ID to string

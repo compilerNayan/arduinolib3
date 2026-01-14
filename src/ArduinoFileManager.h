@@ -10,7 +10,7 @@
     #define PREFERENCES_AVAILABLE
 #endif
 
-/// @Component
+/* @Component */
 class ArduinoFileManager final : public IFileManager {
     #ifdef PREFERENCES_AVAILABLE
     private:

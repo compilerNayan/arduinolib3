@@ -385,7 +385,7 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
 
 
 def mark_dto_annotation_processed(file_path: str, dry_run: bool = False, serializable_annotation: str = "_Entity") -> bool:
-    """Replace the @Entity annotation with processed marker in a C++ file."""
+    """Replace the /* @Entity */ or /* @Serializable */ annotation with processed marker /*--@Entity--*/ or /*--@Serializable--*/ in a C++ file."""
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
             lines = file.readlines()
@@ -400,8 +400,8 @@ def mark_dto_annotation_processed(file_path: str, dry_run: bool = False, seriali
         modified = False
         modified_lines = []
         
-        processed_pattern = rf'^/\*\s*{re.escape(annotation_name)}\s*\*/\s*$'
-        annotation_pattern = rf'^///\s*{re.escape(annotation_name)}\s*$'
+        processed_pattern = rf'^/\*--\s*{re.escape(annotation_name)}\s*--\*/\s*$'
+        annotation_pattern = rf'^/\*\s*{re.escape(annotation_name)}\s*\*/\s*$'
         
         for i, line in enumerate(lines):
             stripped_line = line.strip()
@@ -414,12 +414,12 @@ def mark_dto_annotation_processed(file_path: str, dry_run: bool = False, seriali
                 if line.startswith(' '):
                     indent = len(line) - len(line.lstrip())
                     if not dry_run:
-                        modified_lines.append(' ' * indent + f'/* {annotation_name} */\n')
+                        modified_lines.append(' ' * indent + f'/*--{annotation_name}--*/\n')
                     else:
                         modified_lines.append(line)
                 else:
                     if not dry_run:
-                        modified_lines.append(f'/* {annotation_name} */\n')
+                        modified_lines.append(f'/*--{annotation_name}--*/\n')
                     else:
                         modified_lines.append(line)
                 modified = True

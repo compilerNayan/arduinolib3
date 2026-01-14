@@ -39,10 +39,10 @@ def check_dto_annotation(file_path: str, serializable_annotation: str = "_Entity
         # Default to @Serializable for backward compatibility
         annotation_name = "@Serializable"
     
-    # Pattern to match /// @Entity or ///@Entity or /// @Serializable or ///@Serializable annotation (ignoring whitespace)
-    # Also check for already processed /* @Entity */ or /* @Serializable */ pattern
-    annotation_pattern = rf'///\s*{re.escape(annotation_name)}\b'
-    processed_pattern = rf'/\*\s*{re.escape(annotation_name)}\s*\*/'
+    # Pattern to match /* @Entity */ or /*@Entity*/ or /* @Serializable */ or /*@Serializable*/ annotation (ignoring whitespace)
+    # Also check for already processed /*--@Entity--*/ or /*--@Serializable--*/ pattern
+    annotation_pattern = rf'/\*\s*{re.escape(annotation_name)}\s*\*/'
+    processed_pattern = rf'/\*--\s*{re.escape(annotation_name)}\s*--\*/'
     
     # Pattern to match class declarations
     class_pattern = r'class\s+([A-Za-z_][A-Za-z0-9_]*)\s*(?:[:{])'
@@ -50,11 +50,19 @@ def check_dto_annotation(file_path: str, serializable_annotation: str = "_Entity
     for line_num, line in enumerate(lines, 1):
         stripped_line = line.strip()
         
-        # Check if line is already processed (/* @Entity */ or /* @Serializable */)
+        # Check if line is already processed (/*--@Entity--*/ or /*--@Serializable--*/)
         if re.search(processed_pattern, stripped_line):
             continue
         
-        # Check for annotation (/// @Entity or ///@Entity or /// @Serializable or ///@Serializable)
+        # Skip other comments that aren't @Entity/@Serializable annotations
+        # But allow /* @Entity */ or /* @Serializable */ annotations to be processed
+        if stripped_line.startswith('/*') and not re.search(annotation_pattern, stripped_line):
+            continue
+        # Skip single-line comments
+        if stripped_line.startswith('//'):
+            continue
+        
+        # Check for annotation (/* @Entity */ or /*@Entity*/ or /* @Serializable */ or /*@Serializable*/)
         annotation_match = re.search(annotation_pattern, stripped_line)
         if annotation_match:
             # Look ahead for class declaration (within next 10 lines)
@@ -62,11 +70,12 @@ def check_dto_annotation(file_path: str, serializable_annotation: str = "_Entity
                 if i <= len(lines):
                     next_line = lines[i - 1].strip()
                     
-                    # Skip comments (but not the annotation itself which is in a comment)
-                    if next_line.startswith('/*') and not re.search(processed_pattern, next_line):
+                    # Skip other comments that aren't annotations
+                    # But allow /* @Entity */ or /* @Serializable */ annotations to be processed
+                    if next_line.startswith('/*') and not re.search(annotation_pattern, next_line):
                         continue
-                    # Skip other single-line comments that aren't the annotation
-                    if next_line.startswith('//') and not re.search(annotation_pattern, next_line):
+                    # Skip single-line comments
+                    if next_line.startswith('//'):
                         continue
                     
                     # Check for class declaration

@@ -5,6 +5,8 @@
 #include "../IFileManager.h"
 #include <optional>
 #include <type_traits>
+#include <functional>
+#include <cstdint>
 
 #ifdef ARDUINO
 #define DATABASE_PATH ""
@@ -66,7 +68,20 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
     // Helper method to get IDs file path
     Protected StdString GetIdsFilePath() {
         StdString tableName = Entity::GetTableName();
-        return StdString(DATABASE_PATH) + tableName + "_IDs";
+        return StdString(DATABASE_PATH) + GenerateHash(tableName + "_IDs");
+    }
+
+    // Helper method to generate consistent hash for a string input
+    // Returns a hash value as StdString (guaranteed to be <= 14 characters)
+    Protected Static StdString GenerateHash(CStdString input) {
+        // Use std::hash to generate hash, then cast to uint32_t to ensure <= 14 characters
+        // uint32_t max value is 4,294,967,295 (10 digits), which is well within 14 character limit
+        std::hash<StdString> hasher;
+        size_t hashValue = hasher(StdString(input.c_str()));
+        uint32_t hash32 = static_cast<uint32_t>(hashValue);
+        
+        // Convert to string and return
+        return StdString(std::to_string(hash32).c_str());
     }
 
     // Helper method to construct file path
@@ -75,7 +90,7 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
         StdString tableName = Entity::GetTableName();
         // Get primary key name (static method)
         StdString primaryKeyName = Entity::GetPrimaryKeyName();
-        return StdString(DATABASE_PATH) + tableName + "_" + primaryKeyName + "_" + ConvertToString(id);
+        return StdString(DATABASE_PATH) + GenerateHash(tableName + "_" + primaryKeyName + "_" + ConvertToString(id));
     }
 
     // Helper method to read all IDs from the IDs file

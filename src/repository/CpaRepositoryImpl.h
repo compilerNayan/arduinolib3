@@ -283,6 +283,12 @@ class CpaRepositoryImpl : public CpaRepository<Entity, ID> {
 
     // Delete: Delete entity by ID
     Public Virtual Void DeleteById(ID id) override {
+        // Check if entity exists before attempting to delete
+        if (!ExistsById(id)) {
+            // Entity doesn't exist, nothing to delete
+            return;
+        }
+        
         // Construct file path
         StdString filePath = GetFilePath(id);
         

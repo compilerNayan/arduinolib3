@@ -180,17 +180,20 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
                 code_lines.append(f"            doc[\"{field_name}\"] = {field_name}.value();")
             else:
                 # For nested object/enum types in optional, use SerializeValue
-                # Enums serialize to strings, complex objects serialize to JSON strings
+                # SerializeValue handles enums (via template specialization) and complex objects
                 code_lines.append(f"            // Serialize nested object or enum: {field_name}")
+                code_lines.append(f"            // SerializeValue will use template specialization for enums (returns string like \"Off\")")
+                code_lines.append(f"            // or call .Serialize() for complex objects (returns JSON string)")
                 code_lines.append(f"            StdString {field_name}_json = nayan::serializer::SerializeValue({field_name}.value());")
-                code_lines.append(f"            // Try to parse as JSON (for complex objects), otherwise add as string (for enums)")
+                code_lines.append(f"            // Try to parse as JSON object (for complex objects)")
                 code_lines.append(f"            JsonDocument {field_name}_doc;")
                 code_lines.append(f"            DeserializationError {field_name}_error = deserializeJson({field_name}_doc, {field_name}_json.c_str());")
                 code_lines.append(f"            if ({field_name}_error == DeserializationError::Ok && {field_name}_doc.is<JsonObject>()) {{")
-                code_lines.append(f"                // Complex object - add parsed JSON")
+                code_lines.append(f"                // Complex object - add parsed JSON object")
                 code_lines.append(f"                doc[\"{field_name}\"] = {field_name}_doc.as<JsonObject>();")
                 code_lines.append(f"            }} else {{")
-                code_lines.append(f"                // Enum or string - add directly as string value")
+                code_lines.append(f"                // Enum (serialized as plain string like \"Off\" or \"On\") - add directly as string value")
+                code_lines.append(f"                // This ensures enums are stored as strings, not integers")
                 code_lines.append(f"                doc[\"{field_name}\"] = {field_name}_json.c_str();")
                 code_lines.append(f"            }}")
             
@@ -541,9 +544,11 @@ def main():
     dto_info = S1_check_dto_macro.check_dto_macro(args.file_path)
     
     if not dto_info or not dto_info.get('has_dto'):
-        pass
+        return 0
     
-    class_name = dto_info['class_name']
+    class_name = dto_info.get('class_name')
+    if not class_name:
+        return 0
     fields = S2_extract_dto_fields.extract_all_fields(args.file_path, class_name)
     
     if not fields:

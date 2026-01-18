@@ -32,6 +32,48 @@ spec_s3 = importlib.util.spec_from_file_location("S3_inject_serialization", os.p
 S3_inject_serialization = importlib.util.module_from_spec(spec_s3)
 spec_s3.loader.exec_module(S3_inject_serialization)
 
+# Import enum serialization script from arduinolib1 (it's shared)
+# Try to find arduinolib1's serialization scripts
+S8_handle_enum_serialization = None
+try:
+    # Method 1: Try to find from library_dir if available
+    if 'library_dir' in globals():
+        potential_lib1_scripts = os.path.join(globals()['library_dir'], 'arduinolib1', 'serializationlib_scripts', 'serializationlib_serializer', 'S8_handle_enum_serialization.py')
+        if os.path.exists(potential_lib1_scripts):
+            spec_s8 = importlib.util.spec_from_file_location("S8_handle_enum_serialization", potential_lib1_scripts)
+            S8_handle_enum_serialization = importlib.util.module_from_spec(spec_s8)
+            spec_s8.loader.exec_module(S8_handle_enum_serialization)
+    
+    # Method 2: Try to find from project_dir
+    if S8_handle_enum_serialization is None:
+        project_dir = None
+        if 'project_dir' in globals():
+            project_dir = globals()['project_dir']
+        elif 'PROJECT_DIR' in os.environ:
+            project_dir = os.environ['PROJECT_DIR']
+        elif 'CMAKE_PROJECT_DIR' in os.environ:
+            project_dir = os.environ['CMAKE_PROJECT_DIR']
+        
+        if project_dir:
+            potential_lib1_scripts = os.path.join(project_dir, 'arduinolib1', 'serializationlib_scripts', 'serializationlib_serializer', 'S8_handle_enum_serialization.py')
+            if os.path.exists(potential_lib1_scripts):
+                spec_s8 = importlib.util.spec_from_file_location("S8_handle_enum_serialization", potential_lib1_scripts)
+                S8_handle_enum_serialization = importlib.util.module_from_spec(spec_s8)
+                spec_s8.loader.exec_module(S8_handle_enum_serialization)
+    
+    # Method 3: Try relative path from current script
+    if S8_handle_enum_serialization is None:
+        current_file = os.path.abspath(__file__)
+        # Go up: serialization -> springbootplusplus_data_core -> springbootplusplus-data_scripts -> arduinolib3 -> project root
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_file))))
+        potential_lib1_scripts = os.path.join(project_root, 'arduinolib1', 'serializationlib_scripts', 'serializationlib_serializer', 'S8_handle_enum_serialization.py')
+        if os.path.exists(potential_lib1_scripts):
+            spec_s8 = importlib.util.spec_from_file_location("S8_handle_enum_serialization", potential_lib1_scripts)
+            S8_handle_enum_serialization = importlib.util.module_from_spec(spec_s8)
+            spec_s8.loader.exec_module(S8_handle_enum_serialization)
+except Exception:
+    S8_handle_enum_serialization = None
+
 
 def discover_all_libraries(project_dir):
     """Discover all library directories in build/_deps/ (CMake) and .pio/libdeps/ (PlatformIO)."""
@@ -131,6 +173,36 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
         if not os.path.exists(file_path):
             continue
         
+        # First, check if file has enum with @Serializable annotation
+        if S8_handle_enum_serialization:
+            enum_info = S8_handle_enum_serialization.check_enum_annotation(file_path, serializable_macro)
+            if enum_info and enum_info.get('has_enum'):
+                # Process enum serialization
+                if not dry_run:
+                    enum_name = enum_info['enum_name']
+                    enum_line = enum_info['enum_line']
+                    annotation_line = enum_info['annotation_line']
+                    
+                    # Extract enum values
+                    enum_values = S8_handle_enum_serialization.extract_enum_values(file_path, enum_name, enum_line)
+                    
+                    if enum_values:
+                        # Generate code
+                        code = S8_handle_enum_serialization.generate_enum_serialization_code(enum_name, enum_values)
+                        
+                        # Add necessary includes
+                        S8_handle_enum_serialization.add_include_if_needed(file_path, "<SerializationUtility.h>")
+                        S8_handle_enum_serialization.add_include_if_needed(file_path, "<algorithm>")
+                        S8_handle_enum_serialization.add_include_if_needed(file_path, "<cctype>")
+                        
+                        # Inject code
+                        success = S8_handle_enum_serialization.inject_enum_code(file_path, code, dry_run=False)
+                        if success:
+                            # Mark annotation as processed
+                            S8_handle_enum_serialization.mark_enum_annotation_processed(file_path, annotation_line, dry_run=False)
+                            processed_count += 1
+        
+        # Check if file has @Entity/@Serializable annotation (for classes)
         dto_info = S1_check_dto_macro.check_dto_macro(file_path, serializable_macro)
         
         if not dto_info or not dto_info.get('has_dto'):

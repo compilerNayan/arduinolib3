@@ -180,11 +180,19 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
                 code_lines.append(f"            doc[\"{field_name}\"] = {field_name}.value();")
             else:
                 # For nested object/enum types in optional, use SerializeValue
+                # Enums serialize to strings, complex objects serialize to JSON strings
                 code_lines.append(f"            // Serialize nested object or enum: {field_name}")
                 code_lines.append(f"            StdString {field_name}_json = nayan::serializer::SerializeValue({field_name}.value());")
+                code_lines.append(f"            // Try to parse as JSON (for complex objects), otherwise add as string (for enums)")
                 code_lines.append(f"            JsonDocument {field_name}_doc;")
-                code_lines.append(f"            deserializeJson({field_name}_doc, {field_name}_json.c_str());")
-                code_lines.append(f"            doc[\"{field_name}\"] = {field_name}_doc;")
+                code_lines.append(f"            DeserializationError {field_name}_error = deserializeJson({field_name}_doc, {field_name}_json.c_str());")
+                code_lines.append(f"            if ({field_name}_error == DeserializationError::Ok && {field_name}_doc.is<JsonObject>()) {{")
+                code_lines.append(f"                // Complex object - add parsed JSON")
+                code_lines.append(f"                doc[\"{field_name}\"] = {field_name}_doc.as<JsonObject>();")
+                code_lines.append(f"            }} else {{")
+                code_lines.append(f"                // Enum or string - add directly as string value")
+                code_lines.append(f"                doc[\"{field_name}\"] = {field_name}_json.c_str();")
+                code_lines.append(f"            }}")
             
             code_lines.append(f"        }} else {{")
             code_lines.append(f"            doc[\"{field_name}\"] = nullptr;")
@@ -371,10 +379,17 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
                         code_lines.append(f"            obj.{field_name} = doc[\"{field_name}\"].as<{inner_type}>();")
                 else:
                     # For nested object/enum types in optional, use DeserializeValue
+                    # Handle both enums (which serialize to strings) and complex objects
                     code_lines.append(f"            // Deserialize nested object or enum: {field_name}")
-                    code_lines.append(f"            JsonObject {field_name}_obj = doc[\"{field_name}\"].as<JsonObject>();")
                     code_lines.append(f"            StdString {field_name}_json;")
-                    code_lines.append(f"            serializeJson({field_name}_obj, {field_name}_json);")
+                    code_lines.append(f"            if (doc[\"{field_name}\"].is<const char*>()) {{")
+                    code_lines.append(f"                // Enum or string value - extract directly")
+                    code_lines.append(f"                {field_name}_json = StdString(doc[\"{field_name}\"].as<const char*>());")
+                    code_lines.append(f"            }} else {{")
+                    code_lines.append(f"                // Complex object - serialize to JSON string")
+                    code_lines.append(f"                JsonObject {field_name}_obj = doc[\"{field_name}\"].as<JsonObject>();")
+                    code_lines.append(f"                serializeJson({field_name}_obj, {field_name}_json);")
+                    code_lines.append(f"            }}")
                     code_lines.append(f"            obj.{field_name} = nayan::serializer::DeserializeValue<{inner_type}>({field_name}_json);")
                 
                 code_lines.append(f"        }}")

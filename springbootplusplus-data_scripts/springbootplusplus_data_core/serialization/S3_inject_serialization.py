@@ -179,8 +179,9 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
             elif is_primitive:
                 code_lines.append(f"            doc[\"{field_name}\"] = {field_name}.value();")
             else:
-                code_lines.append(f"            // Serialize nested object: {field_name}")
-                code_lines.append(f"            StdString {field_name}_json = {field_name}.value().Serialize();")
+                # For nested object/enum types in optional, use SerializeValue
+                code_lines.append(f"            // Serialize nested object or enum: {field_name}")
+                code_lines.append(f"            StdString {field_name}_json = nayan::serializer::SerializeValue({field_name}.value());")
                 code_lines.append(f"            JsonDocument {field_name}_doc;")
                 code_lines.append(f"            deserializeJson({field_name}_doc, {field_name}_json.c_str());")
                 code_lines.append(f"            doc[\"{field_name}\"] = {field_name}_doc;")
@@ -336,11 +337,12 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
                     else:
                         code_lines.append(f"        obj.{field_name} = doc[\"{field_name}\"].as<{inner_type}>();")
                 else:
-                    code_lines.append(f"        // Deserialize nested object: {field_name}")
+                    # For nested object/enum types, use DeserializeValue
+                    code_lines.append(f"        // Deserialize nested object or enum: {field_name}")
                     code_lines.append(f"        JsonObject {field_name}_obj = doc[\"{field_name}\"].as<JsonObject>();")
                     code_lines.append(f"        StdString {field_name}_json;")
                     code_lines.append(f"        serializeJson({field_name}_obj, {field_name}_json);")
-                    code_lines.append(f"        obj.{field_name} = {inner_type}::Deserialize({field_name}_json);")
+                    code_lines.append(f"        obj.{field_name} = nayan::serializer::DeserializeValue<{inner_type}>({field_name}_json);")
             else:
                 code_lines.append(f"        // Deserialize optional field: {field_name}")
                 code_lines.append(f"        if (!doc[\"{field_name}\"].isNull()) {{")
@@ -361,11 +363,12 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
                     else:
                         code_lines.append(f"            obj.{field_name} = doc[\"{field_name}\"].as<{inner_type}>();")
                 else:
-                    code_lines.append(f"            // Deserialize nested object: {field_name}")
+                    # For nested object/enum types in optional, use DeserializeValue
+                    code_lines.append(f"            // Deserialize nested object or enum: {field_name}")
                     code_lines.append(f"            JsonObject {field_name}_obj = doc[\"{field_name}\"].as<JsonObject>();")
                     code_lines.append(f"            StdString {field_name}_json;")
                     code_lines.append(f"            serializeJson({field_name}_obj, {field_name}_json);")
-                    code_lines.append(f"            obj.{field_name} = {inner_type}::Deserialize({field_name}_json);")
+                    code_lines.append(f"            obj.{field_name} = nayan::serializer::DeserializeValue<{inner_type}>({field_name}_json);")
                 
                 code_lines.append(f"        }}")
     
@@ -544,6 +547,23 @@ def main():
     if not args.dry_run:
         if has_optional_fields:
             add_include_if_needed(args.file_path, "<optional>")
+        
+        # Check if we need NayanSerializer.h for SerializeValue/DeserializeValue
+        needs_serializer = False
+        for field in fields:
+            field_type = field['type'].strip()
+            if is_optional_type(field_type):
+                inner_type = extract_inner_type_from_optional(field_type)
+                is_primitive = any(prim in inner_type for prim in ['int', 'Int', 'CInt', 'long', 'Long', 'CLong', 'float', 'Float', 'CFloat', 
+                      'double', 'Double', 'CDouble', 'bool', 'Bool', 'CBool', 'char', 'Char', 'CChar',
+                      'unsigned', 'UInt', 'CUInt', 'short', 'Short', 'CShort'])
+                is_string = 'StdString' in inner_type or 'CStdString' in inner_type or 'string' in inner_type.lower()
+                if not is_primitive and not is_string:
+                    needs_serializer = True
+                    break
+        
+        if needs_serializer:
+            add_include_if_needed(args.file_path, "<NayanSerializer.h>")
     
     success = inject_methods_into_class(args.file_path, class_name, methods_code, dry_run=args.dry_run)
     

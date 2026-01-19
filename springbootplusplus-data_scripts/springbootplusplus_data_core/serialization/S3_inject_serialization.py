@@ -276,12 +276,12 @@ def generate_serialization_methods(class_name: str, fields: List[Dict[str, str]]
     
     # Generate static Deserialize() method
     code_lines.append("    // Deserialization method")
-    code_lines.append(f"    Public Static {class_name} Deserialize(CStdString& data) {{")
+    code_lines.append(f"    Public Static {class_name} Deserialize(const StdString& input) {{")
     code_lines.append("        // Create JSON document")
     code_lines.append("        JsonDocument doc;")
     code_lines.append("")
     code_lines.append("        // Deserialize JSON string")
-    code_lines.append("        DeserializationError error = deserializeJson(doc, data.c_str());")
+    code_lines.append("        DeserializationError error = deserializeJson(doc, input.c_str());")
     code_lines.append("")
     code_lines.append("        if (error) {")
     code_lines.append("            StdString errorMsg = \"JSON parse error: \";")

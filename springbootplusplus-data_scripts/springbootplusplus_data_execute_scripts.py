@@ -62,6 +62,8 @@ def execute_scripts(project_dir, library_dir):
                     serializer_module.__dict__['project_dir'] = project_dir
                     serializer_module.__dict__['library_dir'] = library_dir
                     serializer_module.__dict__['serializable_macro'] = serializable_macro
+                    # Set __file__ so script_dir can be calculated correctly
+                    serializer_module.__dict__['__file__'] = str(serializer_script_path)
                     
                     # Execute the module (this will run the top-level code)
                     spec.loader.exec_module(serializer_module)
@@ -70,7 +72,7 @@ def execute_scripts(project_dir, library_dir):
                     if hasattr(serializer_module, 'main'):
                         serializer_module.main()
                     elif hasattr(serializer_module, 'process_all_serializable_classes'):
-                        serializer_module.process_all_serializable_classes(dry_run=False)
+                        serializer_module.process_all_serializable_classes(dry_run=False, serializable_macro=serializable_macro)
                     
                 except Exception as e:
                     import traceback

@@ -11,7 +11,20 @@ import importlib.util
 from pathlib import Path
 
 # Import get_client_files from parent directory
-script_dir = os.path.dirname(os.path.abspath(__file__))
+# Handle both direct execution and dynamic loading
+try:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+except NameError:
+    # Fallback: use library_dir if available
+    if 'library_dir' in globals():
+        script_dir = os.path.join(globals()['library_dir'], 'springbootplusplus-data_scripts', 'springbootplusplus_data_core', 'serialization')
+    else:
+        # Last resort: try to get from current file location
+        import inspect
+        try:
+            script_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+        except:
+            script_dir = os.getcwd()
 parent_dir = os.path.dirname(script_dir)
 sys.path.insert(0, parent_dir)
 sys.path.insert(0, script_dir)

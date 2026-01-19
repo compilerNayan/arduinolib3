@@ -19,6 +19,8 @@ def execute_scripts(project_dir, library_dir):
         project_dir: Path to the client project root (where platformio.ini is)
         library_dir: Path to the library directory
     """
+    import sys
+    print(f"[DEBUG] execute_scripts called with project_dir={project_dir}, library_dir={library_dir}", file=sys.stderr)
     # Set project_dir in globals so scripts can access it
     globals()['project_dir'] = project_dir
     globals()['library_dir'] = library_dir
@@ -52,32 +54,44 @@ def execute_scripts(project_dir, library_dir):
                     os.environ['SERIALIZABLE_MACRO'] = serializable_macro
                     
                     # Load and execute the serializer script
+                    print(f"[DEBUG] Loading serializer script from: {serializer_script_path}", file=sys.stderr)
                     spec = importlib.util.spec_from_file_location("process_serializable_classes", str(serializer_script_path))
                     serializer_module = importlib.util.module_from_spec(spec)
                     
                     # Add serialization directory to path for imports
                     sys.path.insert(0, str(serialization_dir))
                     
-                    # Set globals in the module's namespace before execution
-                    serializer_module.__dict__['project_dir'] = project_dir
-                    serializer_module.__dict__['library_dir'] = library_dir
-                    serializer_module.__dict__['serializable_macro'] = serializable_macro
                     # Set __file__ so script_dir can be calculated correctly
                     serializer_module.__dict__['__file__'] = str(serializer_script_path)
                     
                     # Execute the module (this will run the top-level code)
                     spec.loader.exec_module(serializer_module)
                     
+                    # Set globals AFTER module execution so they're available to functions
+                    serializer_module.__dict__['project_dir'] = project_dir
+                    serializer_module.__dict__['library_dir'] = library_dir
+                    serializer_module.__dict__['serializable_macro'] = serializable_macro
+                    # Also set as attributes so they're accessible
+                    serializer_module.project_dir = project_dir
+                    serializer_module.library_dir = library_dir
+                    serializer_module.serializable_macro = serializable_macro
+                    
                     # Call the main function if it exists
                     if hasattr(serializer_module, 'main'):
                         serializer_module.main()
                     elif hasattr(serializer_module, 'process_all_serializable_classes'):
-                        serializer_module.process_all_serializable_classes(dry_run=False, serializable_macro=serializable_macro)
+                        print(f"[DEBUG] Calling process_all_serializable_classes with project_dir={project_dir}, serializable_macro={serializable_macro}", file=sys.stderr)
+                        count = serializer_module.process_all_serializable_classes(dry_run=False, serializable_macro=serializable_macro)
+                        print(f"[DEBUG] process_all_serializable_classes returned: {count} files processed", file=sys.stderr)
                     
                 except Exception as e:
                     import traceback
-                    traceback.print_exc()
+                    print(f"[DEBUG] Exception in serializer script execution: {e}", file=sys.stderr)
+                    traceback.print_exc(file=sys.stderr)
+        else:
+            print(f"[DEBUG] serialization_dir does not exist: {serialization_dir}", file=sys.stderr)
     except Exception as e:
         import traceback
-        traceback.print_exc()
+        print(f"[DEBUG] Exception in execute_scripts: {e}", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
 

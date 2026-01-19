@@ -138,6 +138,8 @@ def discover_all_libraries(project_dir):
 
 def process_all_serializable_classes(dry_run=False, serializable_macro=None):
     """Process all client files that contain classes with @Entity annotation."""
+    import sys
+    print(f"[DEBUG] process_all_serializable_classes called: dry_run={dry_run}, serializable_macro={serializable_macro}", file=sys.stderr)
     if serializable_macro is None:
         if 'serializable_macro' in globals():
             serializable_macro = globals()['serializable_macro']
@@ -147,17 +149,37 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
             serializable_macro = "_Entity"
     
     project_dir = None
-    if 'project_dir' in globals():
-        project_dir = globals()['project_dir']
-    elif 'PROJECT_DIR' in os.environ:
-        project_dir = os.environ['PROJECT_DIR']
-    elif 'CMAKE_PROJECT_DIR' in os.environ:
-        project_dir = os.environ['CMAKE_PROJECT_DIR']
+    # Try to get from the module that contains this function
+    import sys
+    # Get the module from sys.modules
+    for name, mod in sys.modules.items():
+        if hasattr(mod, 'process_all_serializable_classes') and mod.process_all_serializable_classes == process_all_serializable_classes:
+            # Try as attribute first
+            if hasattr(mod, 'project_dir') and mod.project_dir is not None:
+                project_dir = mod.project_dir
+                break
+            # Then try __dict__
+            if hasattr(mod, '__dict__') and 'project_dir' in mod.__dict__ and mod.__dict__['project_dir'] is not None:
+                project_dir = mod.__dict__['project_dir']
+                break
+    
+    # Try globals() - but check if it's actually set (not None)
+    if not project_dir:
+        if 'project_dir' in globals() and globals()['project_dir'] is not None:
+            project_dir = globals()['project_dir']
+    
+    # Try environment variables
+    if not project_dir:
+        if 'PROJECT_DIR' in os.environ:
+            project_dir = os.environ['PROJECT_DIR']
+        elif 'CMAKE_PROJECT_DIR' in os.environ:
+            project_dir = os.environ['CMAKE_PROJECT_DIR']
     
     if not project_dir:
         return 0
     
     if get_client_files is None:
+        print(f"[DEBUG] get_client_files is None, returning 0", file=sys.stderr)
         return 0
     
     all_libraries = discover_all_libraries(project_dir)
@@ -178,12 +200,18 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
             pass
     
     if not header_files:
+        print(f"[DEBUG] No header files found!", file=sys.stderr)
         return 0
+    
+    print(f"[DEBUG] Total header files to process: {len(header_files)}", file=sys.stderr)
+    print(f"[DEBUG] Project dir: {project_dir}, serializable_macro: {serializable_macro}", file=sys.stderr)
+    print(f"[DEBUG] Libraries discovered: {len(all_libraries)}", file=sys.stderr)
     
     processed_count = 0
     
     for file_path in header_files:
         if not os.path.exists(file_path):
+            print(f"[DEBUG] Skipping non-existent file: {file_path}", file=sys.stderr)
             continue
         
         # First, check if file has enum with @Serializable annotation
@@ -219,7 +247,11 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
         dto_info = S1_check_dto_macro.check_dto_macro(file_path, serializable_macro)
         
         if not dto_info or not dto_info.get('has_dto'):
+            if 'entity' in file_path.lower() or 'wifi' in file_path.lower():
+                print(f"[DEBUG] File {file_path} - DTO check: {dto_info}", file=sys.stderr)
             continue
+        
+        print(f"[DEBUG] Processing file: {file_path}, class: {dto_info.get('class_name')}", file=sys.stderr)
         
         class_name = dto_info['class_name']
         
@@ -271,7 +303,6 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
             if not dry_run:
                 S3_inject_serialization.comment_dto_macro(file_path, dry_run=False, serializable_macro=serializable_macro)
             processed_count += 1
-    
     return processed_count
 
 

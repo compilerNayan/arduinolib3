@@ -506,10 +506,7 @@ try:
     # print("Importing and executing scripts...")
     # print(f"{'=' * 60}")
     from springbootplusplus_data_execute_scripts import execute_scripts
-    print(f"[DEBUG] Successfully imported execute_scripts", file=sys.stderr)
-    print(f"[DEBUG] Calling execute_scripts with project_dir={project_dir}, library_dir={library_dir}", file=sys.stderr)
     execute_scripts(project_dir, library_dir)
-    print(f"[DEBUG] execute_scripts completed", file=sys.stderr)
 except ImportError as e:
     # print(f"⚠️  Error importing execute_scripts: {e}")
     import traceback

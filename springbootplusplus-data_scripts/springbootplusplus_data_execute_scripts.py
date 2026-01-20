@@ -19,8 +19,6 @@ def execute_scripts(project_dir, library_dir):
         project_dir: Path to the client project root (where platformio.ini is)
         library_dir: Path to the library directory
     """
-    import sys
-    print(f"[DEBUG] execute_scripts called with project_dir={project_dir}, library_dir={library_dir}", file=sys.stderr)
     # Set project_dir in globals so scripts can access it
     globals()['project_dir'] = project_dir
     globals()['library_dir'] = library_dir
@@ -54,7 +52,6 @@ def execute_scripts(project_dir, library_dir):
                     os.environ['SERIALIZABLE_MACRO'] = serializable_macro
                     
                     # Load and execute the serializer script
-                    print(f"[DEBUG] Loading serializer script from: {serializer_script_path}", file=sys.stderr)
                     spec = importlib.util.spec_from_file_location("process_serializable_classes", str(serializer_script_path))
                     serializer_module = importlib.util.module_from_spec(spec)
                     

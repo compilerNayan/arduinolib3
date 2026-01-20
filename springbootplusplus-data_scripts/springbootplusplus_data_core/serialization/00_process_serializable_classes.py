@@ -138,8 +138,6 @@ def discover_all_libraries(project_dir):
 
 def process_all_serializable_classes(dry_run=False, serializable_macro=None):
     """Process all client files that contain classes with @Entity annotation."""
-    import sys
-    print(f"[DEBUG] process_all_serializable_classes called: dry_run={dry_run}, serializable_macro={serializable_macro}", file=sys.stderr)
     if serializable_macro is None:
         if 'serializable_macro' in globals():
             serializable_macro = globals()['serializable_macro']
@@ -179,7 +177,6 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
         return 0
     
     if get_client_files is None:
-        print(f"[DEBUG] get_client_files is None, returning 0", file=sys.stderr)
         return 0
     
     all_libraries = discover_all_libraries(project_dir)
@@ -200,18 +197,12 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
             pass
     
     if not header_files:
-        print(f"[DEBUG] No header files found!", file=sys.stderr)
         return 0
-    
-    print(f"[DEBUG] Total header files to process: {len(header_files)}", file=sys.stderr)
-    print(f"[DEBUG] Project dir: {project_dir}, serializable_macro: {serializable_macro}", file=sys.stderr)
-    print(f"[DEBUG] Libraries discovered: {len(all_libraries)}", file=sys.stderr)
     
     processed_count = 0
     
     for file_path in header_files:
         if not os.path.exists(file_path):
-            print(f"[DEBUG] Skipping non-existent file: {file_path}", file=sys.stderr)
             continue
         
         # First, check if file has enum with @Serializable annotation

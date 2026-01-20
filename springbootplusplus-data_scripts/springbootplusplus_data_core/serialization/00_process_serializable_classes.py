@@ -238,11 +238,7 @@ def process_all_serializable_classes(dry_run=False, serializable_macro=None):
         dto_info = S1_check_dto_macro.check_dto_macro(file_path, serializable_macro)
         
         if not dto_info or not dto_info.get('has_dto'):
-            if 'entity' in file_path.lower() or 'wifi' in file_path.lower():
-                print(f"[DEBUG] File {file_path} - DTO check: {dto_info}", file=sys.stderr)
             continue
-        
-        print(f"[DEBUG] Processing file: {file_path}, class: {dto_info.get('class_name')}", file=sys.stderr)
         
         class_name = dto_info['class_name']
         

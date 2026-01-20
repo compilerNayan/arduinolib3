@@ -77,18 +77,12 @@ def execute_scripts(project_dir, library_dir):
                     if hasattr(serializer_module, 'main'):
                         serializer_module.main()
                     elif hasattr(serializer_module, 'process_all_serializable_classes'):
-                        print(f"[DEBUG] Calling process_all_serializable_classes with project_dir={project_dir}, serializable_macro={serializable_macro}", file=sys.stderr)
-                        count = serializer_module.process_all_serializable_classes(dry_run=False, serializable_macro=serializable_macro)
-                        print(f"[DEBUG] process_all_serializable_classes returned: {count} files processed", file=sys.stderr)
+                        serializer_module.process_all_serializable_classes(dry_run=False, serializable_macro=serializable_macro)
                     
                 except Exception as e:
                     import traceback
-                    print(f"[DEBUG] Exception in serializer script execution: {e}", file=sys.stderr)
-                    traceback.print_exc(file=sys.stderr)
-        else:
-            print(f"[DEBUG] serialization_dir does not exist: {serialization_dir}", file=sys.stderr)
+                    traceback.print_exc()
     except Exception as e:
         import traceback
-        print(f"[DEBUG] Exception in execute_scripts: {e}", file=sys.stderr)
-        traceback.print_exc(file=sys.stderr)
+        traceback.print_exc()
 
